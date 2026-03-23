@@ -1,0 +1,41 @@
+{% extends "monitor/base.html" %}
+{% block content %}
+<h4>Monitoring Control</h4>
+<div class="mb-3">
+  <span class="badge bg-{{ 'success' if active else 'secondary' }}" id="mon-state">
+    {{ 'Running on ' ~ interface if active else 'Stopped' }}
+  </span>
+</div>
+<div class="input-group mb-3" style="max-width:420px;">
+  <input id="iface" class="form-control" placeholder="e.g., eth0, lo, Ethernet" />
+  <button class="btn btn-success" type="button" onclick="startSniff()">Start</button>
+  <button class="btn btn-danger" type="button" onclick="stopSniff()">Stop</button>
+</div>
+<p class="text-muted">Use loopback/isolated lab only. Admin/root or capture privileges required.</p>
+
+<h5>Recent Monitoring Sessions</h5>
+<table class="table table-sm table-hover">
+  <tr><th>Interface</th><th>Started</th><th>Ended</th><th>Active?</th></tr>
+  {% for s in sessions %}
+  <tr>
+    <td>{{ s.interface }}</td>
+    <td>{{ s.started_at }}</td>
+    <td>{{ s.ended_at|default:'—' }}</td>
+    <td>{{ 'Yes' if s.is_active else 'No' }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="4">No sessions recorded yet.</td></tr>
+  {% endfor %}
+</table>
+<script>
+async function startSniff(){
+  const iface = document.getElementById('iface').value;
+  await fetch(`/api/start/?iface=${iface}`);
+  pollStatus();
+}
+async function stopSniff(){
+  await fetch('/api/stop/');
+  pollStatus();
+}
+</script>
+{% endblock %}

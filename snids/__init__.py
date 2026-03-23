@@ -1,0 +1,1 @@
+# SNIDS Django project package

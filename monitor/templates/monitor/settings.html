@@ -1,0 +1,56 @@
+{% extends "monitor/base.html" %}
+{% block content %}
+<h4>Detection Settings</h4>
+<form method="post" class="row g-3">{% csrf_token %}
+  <div class="col-md-4">
+    <label class="form-label">SYN Threshold</label>
+    <input name="syn_threshold" class="form-control" value="{{ settings.syn_threshold }}">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">SYN Window Seconds</label>
+    <input name="syn_window_seconds" class="form-control" value="{{ settings.syn_window_seconds }}">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Handshake Completion Min Ratio</label>
+    <input name="handshake_completion_min_ratio" class="form-control" value="{{ settings.handshake_completion_min_ratio }}">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">RST Threshold</label>
+    <input name="rst_threshold" class="form-control" value="{{ settings.rst_threshold }}">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">RST Window Seconds</label>
+    <input name="rst_window_seconds" class="form-control" value="{{ settings.rst_window_seconds }}">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Hijack Sequence Jump</label>
+    <input name="hijack_seq_jump" class="form-control" value="{{ settings.hijack_seq_jump }}">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Alert Cooldown Seconds</label>
+    <input name="alert_cooldown_seconds" class="form-control" value="{{ settings.alert_cooldown_seconds }}">
+  </div>
+  <div class="col-12">
+    <button class="btn btn-primary" type="submit">Save</button>
+  </div>
+</form>
+<hr>
+<h5>Sniffer Control</h5>
+<div class="mb-2" id="sniffer-status">Unknown</div>
+<div class="input-group mb-3" style="max-width:400px;">
+  <input id="iface" class="form-control" placeholder="e.g., eth0" />
+  <button class="btn btn-success" type="button" onclick="startSniff()">Start</button>
+  <button class="btn btn-danger" type="button" onclick="stopSniff()">Stop</button>
+</div>
+<script>
+async function startSniff(){
+  const iface = document.getElementById('iface').value;
+  await fetch(`/api/start/?iface=${iface}`);
+  pollStatus();
+}
+async function stopSniff(){
+  await fetch('/api/stop/');
+  pollStatus();
+}
+</script>
+{% endblock %}

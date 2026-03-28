@@ -1,0 +1,31 @@
+{% extends "monitor/base.html" %}
+{% block content %}
+<h4>About & Architecture</h4>
+<p>Smart Network Intrusion Detection System (SNIDS) monitors TCP traffic, detects SYN floods, TCP reset spikes, and session anomaly indicators using rule-based logic. It supports live capture (Scapy) and offline PCAP analysis.</p>
+<h5>Flow</h5>
+<pre class="bg-light p-3 border">
+Packet (live/pcap) -> Feature Extraction (TCP fields, counters) -> Detection Engine (rules) -> Alerts -> DB (SQLite) -> Django Views/API -> Dashboard (Bootstrap + Chart.js)
+</pre>
+<h5>Modules</h5>
+<ul>
+  <li>Packet Capture: Scapy live sniff or PCAP parsing</li>
+  <li>Feature Extraction: TCP flags, seq/ack, per-flow counters</li>
+  <li>Detection Engine: SYN flood, RST spike/flow anomaly, session hijack indicators (seq jump, duplicate ACK)</li>
+  <li>Alert Manager: cooldown/dedup, severity</li>
+  <li>Storage: PacketLog, SecurityAlert, MonitoringSession</li>
+  <li>UI: Dashboard, Alerts, Traffic, Monitoring, Settings</li>
+</ul>
+<h5>Demo Tips</h5>
+<ol>
+  <li>Start live monitoring on loopback/ethernet.</li>
+  <li>Run simulation scripts (SYN, RST, anomaly).</li>
+  <li>Show alerts, charts, and packet logs updating.</li>
+  <li>Upload a PCAP to demonstrate offline analysis.</li>
+</ol>
+<h5>Detection Rules (brief)</h5>
+<ul>
+  <li>SYN Flood: SYN rate per source, low handshake completion ratio -> severity scaled by intensity.</li>
+  <li>TCP Reset Spike: RST bursts per source and per flow.</li>
+  <li>Session Anomaly: large sequence jumps; repeated duplicate ACKs.</li>
+</ul>
+{% endblock %}

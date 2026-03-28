@@ -1,41 +1,93 @@
 {% extends "monitor/base.html" %}
+{% load tz %}
 {% block content %}
 <h4>Monitoring Control</h4>
-<div class="mb-3">
-  <span class="badge bg-{{ 'success' if active else 'secondary' }}" id="mon-state">
-    {{ 'Running on ' ~ interface if active else 'Stopped' }}
-  </span>
+<ul class="nav nav-tabs mb-3" id="modeTabs">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#live">Live Mode</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#pcap">PCAP Mode</a></li>
+</ul>
+<div class="tab-content">
+  <div class="tab-pane fade show active" id="live">
+    <div class="mb-3">
+      <span class="badge bg-{% if active %}success{% else %}secondary{% endif %}" id="mon-state">
+        {% if active %}Running on {{ interface }}{% else %}Stopped{% endif %}
+      </span>
+    </div>
+    <div class="row mb-3" style="max-width:520px;">
+      <div class="col-md-8">
+        <select id="iface" class="form-select">
+          {% for name, ip in interfaces %}
+            <option value="{{ name }}">{{ name }} {% if ip %} ({{ ip }}){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 d-grid gap-2 d-md-flex">
+        <button class="btn btn-success me-2" type="button" onclick="startSniff()">Start</button>
+        <button class="btn btn-danger" type="button" onclick="stopSniff()">Stop</button>
+      </div>
+    </div>
+    <div id="start-stop-msg" class="small text-muted"></div>
+    <p class="text-muted">Live capture requires Admin/root or capture privileges. Use loopback/isolated lab only.</p>
+  </div>
+  <div class="tab-pane fade" id="pcap">
+    <form action="/monitoring/pcap/" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="mb-3" style="max-width:520px;">
+        <label class="form-label">Upload PCAP file</label>
+        <input type="file" class="form-control" name="pcap" accept=".pcap,.pcapng" required>
+      </div>
+      <button class="btn btn-primary" type="submit">Analyze PCAP</button>
+      <p class="text-muted mt-2">PCAP is processed with the same detection engine; alerts will appear on the Alerts page.</p>
+    </form>
+  </div>
 </div>
-<div class="input-group mb-3" style="max-width:420px;">
-  <input id="iface" class="form-control" placeholder="e.g., eth0, lo, Ethernet" />
-  <button class="btn btn-success" type="button" onclick="startSniff()">Start</button>
-  <button class="btn btn-danger" type="button" onclick="stopSniff()">Stop</button>
-</div>
-<p class="text-muted">Use loopback/isolated lab only. Admin/root or capture privileges required.</p>
 
-<h5>Recent Monitoring Sessions</h5>
+<h5 class="mt-4">Recent Monitoring Sessions</h5>
 <table class="table table-sm table-hover">
-  <tr><th>Interface</th><th>Started</th><th>Ended</th><th>Active?</th></tr>
+  <tr><th>Mode</th><th>Interface/PCAP</th><th>Started (local)</th><th>Ended (local)</th><th>Packets</th><th>Alerts</th><th>Processing ms</th><th>Active?</th></tr>
   {% for s in sessions %}
   <tr>
-    <td>{{ s.interface }}</td>
-    <td>{{ s.started_at }}</td>
-    <td>{{ s.ended_at|default:'—' }}</td>
-    <td>{{ 'Yes' if s.is_active else 'No' }}</td>
+    <td>{{ s.mode }}</td>
+    <td>{% if s.mode == 'pcap' %}{{ s.pcap_name }}{% else %}{{ s.interface }}{% endif %}</td>
+    <td>{{ s.started_at|localtime|date:"Y-m-d H:i:s" }}</td>
+    <td>{% if s.ended_at %}{{ s.ended_at|localtime|date:"Y-m-d H:i:s" }}{% else %}--{% endif %}</td>
+    <td>{{ s.packet_count }}</td>
+    <td>{{ s.alert_count }}</td>
+    <td>{{ s.processing_ms_total }}</td>
+    <td>{% if s.is_active %}Yes{% else %}No{% endif %}</td>
   </tr>
   {% empty %}
-  <tr><td colspan="4">No sessions recorded yet.</td></tr>
+  <tr><td colspan="8">No sessions recorded yet.</td></tr>
   {% endfor %}
 </table>
 <script>
 async function startSniff(){
   const iface = document.getElementById('iface').value;
-  await fetch(`/api/start/?iface=${iface}`);
-  pollStatus();
+  const msg = document.getElementById('start-stop-msg');
+  msg.textContent = 'Starting...';
+  try{
+    const resp = await fetch(`/api/start/?iface=${encodeURIComponent(iface)}`);
+    const data = await resp.json();
+    if(!resp.ok){
+      msg.textContent = data.message || 'Failed to start';
+    }else{
+      msg.textContent = `Started on ${data.iface}`;
+      pollStatus();
+    }
+  }catch(err){
+    msg.textContent = 'Error starting sniffer';
+  }
 }
 async function stopSniff(){
-  await fetch('/api/stop/');
-  pollStatus();
+  const msg = document.getElementById('start-stop-msg');
+  msg.textContent = 'Stopping...';
+  try{
+    await fetch('/api/stop/');
+    msg.textContent = 'Stopped';
+    pollStatus();
+  }catch(err){
+    msg.textContent = 'Error stopping sniffer';
+  }
 }
 </script>
 {% endblock %}

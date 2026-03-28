@@ -4,10 +4,13 @@ from . import views
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("alerts/", views.alerts, name="alerts"),
+    path("alerts/export/", views.export_alerts_csv, name="export_alerts_csv"),
     path("alerts/<int:pk>/", views.alert_detail, name="alert_detail"),
     path("traffic/", views.traffic, name="traffic"),
     path("monitoring/", views.monitoring, name="monitoring"),
+    path("monitoring/pcap/", views.upload_pcap, name="upload_pcap"),
     path("settings/", views.settings_view, name="settings"),
+    path("about/", views.about, name="about"),
     path("api/start/", views.start_sniff, name="start_sniff"),
     path("api/stop/", views.stop_sniff, name="stop_sniff"),
     path("api/status/", views.status, name="status"),

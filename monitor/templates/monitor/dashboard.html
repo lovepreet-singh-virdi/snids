@@ -1,28 +1,83 @@
 {% extends "monitor/base.html" %}
+{% load tz %}
 {% block content %}
 <div class="row mb-3">
   <div class="col-md-3"><div class="card text-bg-primary"><div class="card-body">Total Packets: {{ total_packets }}</div></div></div>
   <div class="col-md-3"><div class="card text-bg-info"><div class="card-body">TCP Packets: {{ total_tcp }}</div></div></div>
   <div class="col-md-3"><div class="card text-bg-warning"><div class="card-body">Alerts: {{ total_alerts }}</div></div></div>
 </div>
-<h5>Recent Alerts</h5>
-<table class="table table-sm">
-  <tr><th>Time</th><th>Type</th><th>Severity</th><th>Src</th><th>Dst</th></tr>
-  {% for a in recent_alerts %}
-  <tr>
-    <td>{{ a.created_at }}</td><td>{{ a.alert_type }}</td>
-    <td><span class="badge bg-danger">{{ a.severity }}</span></td>
-    <td>{{ a.src_ip }}</td><td>{{ a.dst_ip }}</td>
-  </tr>
-  {% empty %}<tr><td colspan="5">No alerts yet</td></tr>{% endfor %}
-</table>
-<canvas id="alertsChart" height="120"></canvas>
+<div class="row">
+  <div class="col-md-6 mb-3">
+    <h6>Alerts by Type</h6>
+    <canvas id="alertsByType"></canvas>
+  </div>
+  <div class="col-md-6 mb-3">
+    <h6>Alerts by Severity</h6>
+    <canvas id="alertsBySeverity"></canvas>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-6 mb-3">
+    <h6>TCP Flag Distribution</h6>
+    <canvas id="flagChart"></canvas>
+  </div>
+  <div class="col-md-6 mb-3">
+    <h6>Packet Rate (last 10 min)</h6>
+    <canvas id="rateChart"></canvas>
+  </div>
+</div>
+<div class="row mb-3">
+  <div class="col-md-6">
+    <h6>Top Suspicious IPs</h6>
+    <table class="table table-sm">
+      <tr><th>Source IP</th><th>Alerts</th></tr>
+      {% for ip in top_ips %}
+      <tr><td>{{ ip.src_ip }}</td><td>{{ ip.count }}</td></tr>
+      {% empty %}<tr><td colspan="2">No data</td></tr>{% endfor %}
+    </table>
+  </div>
+  <div class="col-md-6">
+    <h6>Recent Alerts</h6>
+    <table class="table table-sm">
+      <tr><th>Time (local)</th><th>Type</th><th>Severity</th><th>Src</th><th>Dst</th></tr>
+      {% for a in recent_alerts %}
+      <tr>
+        <td>{{ a.created_at|localtime|date:"Y-m-d H:i:s" }}</td><td>{{ a.alert_type }}</td>
+        <td>
+          {% if a.severity == 'critical' %}<span class="badge bg-danger">{{ a.severity }}</span>
+          {% elif a.severity == 'high' %}<span class="badge bg-warning text-dark">{{ a.severity }}</span>
+          {% elif a.severity == 'medium' %}<span class="badge bg-info text-dark">{{ a.severity }}</span>
+          {% else %}<span class="badge bg-secondary">{{ a.severity }}</span>{% endif %}
+        </td>
+        <td>{{ a.src_ip }}</td><td>{{ a.dst_ip }}</td>
+      </tr>
+      {% empty %}<tr><td colspan="5">No alerts yet</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
 <script>
-const data = {
+const alertsTypeData = {
   labels: [{% for item in alerts_by_type %}'{{ item.alert_type }}',{% endfor %}],
   datasets: [{label:'Alerts', data:[{% for item in alerts_by_type %}{{ item.count }},{% endfor %}],
-    backgroundColor:['#dc3545','#ffc107','#0d6efd','#20c997']}]
+    backgroundColor:['#0d6efd','#20c997','#ffc107','#dc3545','#6f42c1']}]
 };
-new Chart(document.getElementById('alertsChart'), {type:'bar', data});
+const severityData = {
+  labels: [{% for item in severity_counts %}'{{ item.severity }}',{% endfor %}],
+  datasets: [{label:'Severity', data:[{% for item in severity_counts %}{{ item.count }},{% endfor %}],
+    backgroundColor:['#198754','#ffc107','#fd7e14','#dc3545']}]
+};
+const flagData = {
+  labels:['SYN','ACK','RST','FIN'],
+  datasets:[{label:'Flags', data:[{{ flag_counts.S|default:0 }},{{ flag_counts.A|default:0 }},{{ flag_counts.R|default:0 }},{{ flag_counts.F|default:0 }}],
+    backgroundColor:['#0d6efd','#20c997','#dc3545','#6c757d']}]
+};
+const rateData = {
+  labels:[{% for r in packet_rate %}'{{ r.minute|date:"H:i" }}',{% endfor %}],
+  datasets:[{label:'Packets/min', data:[{% for r in packet_rate %}{{ r.count }},{% endfor %}], borderColor:'#0d6efd', fill:false, tension:0.3}]
+};
+new Chart(document.getElementById('alertsByType'), {type:'bar', data:alertsTypeData});
+new Chart(document.getElementById('alertsBySeverity'), {type:'pie', data:severityData});
+new Chart(document.getElementById('flagChart'), {type:'bar', data:flagData});
+new Chart(document.getElementById('rateChart'), {type:'line', data:rateData});
 </script>
 {% endblock %}

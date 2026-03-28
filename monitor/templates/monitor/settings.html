@@ -36,12 +36,20 @@
 </form>
 <hr>
 <h5>Sniffer Control</h5>
-<div class="mb-2" id="sniffer-status">Unknown</div>
-<div class="input-group mb-3" style="max-width:400px;">
-  <input id="iface" class="form-control" placeholder="e.g., eth0" />
-  <button class="btn btn-success" type="button" onclick="startSniff()">Start</button>
-  <button class="btn btn-danger" type="button" onclick="stopSniff()">Stop</button>
+<div class="row mb-3" style="max-width:520px;">
+  <div class="col-md-8">
+    <select id="iface" class="form-select">
+      {% for name, ip in interfaces %}
+        <option value="{{ name }}">{{ name }} {% if ip %} ({{ ip }}){% endif %}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-4 d-grid gap-2 d-md-flex">
+    <button class="btn btn-success me-2" type="button" onclick="startSniff()">Start</button>
+    <button class="btn btn-danger" type="button" onclick="stopSniff()">Stop</button>
+  </div>
 </div>
+<div id="sniffer-status" class="mb-2">Unknown</div>
 <script>
 async function startSniff(){
   const iface = document.getElementById('iface').value;

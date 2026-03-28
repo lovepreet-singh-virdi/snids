@@ -1,4 +1,5 @@
 {% extends "monitor/base.html" %}
+{% load tz %}
 {% block content %}
 <h4>Alert Detail</h4>
 <ul class="list-group mb-3">
@@ -8,7 +9,7 @@
   <li class="list-group-item"><strong>Destination:</strong> {{ alert.dst_ip }}</li>
   <li class="list-group-item"><strong>Description:</strong> {{ alert.description }}</li>
   <li class="list-group-item"><strong>Evidence:</strong> {{ alert.evidence }}</li>
-  <li class="list-group-item"><strong>Created:</strong> {{ alert.created_at }}</li>
-</ul>
+  <li class="list-group-item"><strong>Created:</strong> {{ alert.created_at|localtime|date:"Y-m-d H:i:s" }}</li>
+ </ul>
 <a href="/alerts/" class="btn btn-secondary">Back</a>
 {% endblock %}

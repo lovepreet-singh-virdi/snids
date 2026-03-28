@@ -1,11 +1,12 @@
 {% extends "monitor/base.html" %}
+{% load tz %}
 {% block content %}
 <h4>Recent Packets (latest 200)</h4>
 <table class="table table-sm table-hover">
-  <tr><th>Time</th><th>Src</th><th>Dst</th><th>SPort</th><th>DPort</th><th>Flags</th><th>Len</th></tr>
+  <tr><th>Time (local)</th><th>Src</th><th>Dst</th><th>SPort</th><th>DPort</th><th>Flags</th><th>Len</th></tr>
   {% for p in packets %}
   <tr>
-    <td>{{ p.timestamp }}</td><td>{{ p.src_ip }}</td><td>{{ p.dst_ip }}</td>
+    <td>{{ p.timestamp|localtime|date:"Y-m-d H:i:s" }}</td><td>{{ p.src_ip }}</td><td>{{ p.dst_ip }}</td>
     <td>{{ p.src_port }}</td><td>{{ p.dst_port }}</td><td>{{ p.flags }}</td><td>{{ p.length }}</td>
   </tr>
   {% empty %}<tr><td colspan="7">No packets</td></tr>{% endfor %}

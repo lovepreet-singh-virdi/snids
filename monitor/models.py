@@ -24,6 +24,11 @@ class MonitoringSession(models.Model):
     started_at = models.DateTimeField(default=timezone.now)
     ended_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    mode = models.CharField(max_length=16, default="live", choices=[("live", "Live"), ("pcap", "PCAP")])
+    pcap_name = models.CharField(max_length=255, blank=True, null=True)
+    packet_count = models.BigIntegerField(default=0)
+    alert_count = models.BigIntegerField(default=0)
+    processing_ms_total = models.BigIntegerField(default=0)
 
 
 class DetectionSetting(models.Model):

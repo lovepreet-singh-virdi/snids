@@ -1,83 +1,214 @@
 {% extends "monitor/base.html" %}
 {% load tz %}
+
 {% block content %}
-<div class="row mb-3">
-  <div class="col-md-3"><div class="card text-bg-primary"><div class="card-body">Total Packets: {{ total_packets }}</div></div></div>
-  <div class="col-md-3"><div class="card text-bg-info"><div class="card-body">TCP Packets: {{ total_tcp }}</div></div></div>
-  <div class="col-md-3"><div class="card text-bg-warning"><div class="card-body">Alerts: {{ total_alerts }}</div></div></div>
-</div>
-<div class="row">
-  <div class="col-md-6 mb-3">
-    <h6>Alerts by Type</h6>
-    <canvas id="alertsByType"></canvas>
-  </div>
-  <div class="col-md-6 mb-3">
-    <h6>Alerts by Severity</h6>
-    <canvas id="alertsBySeverity"></canvas>
+<div class="hero p-4 mb-4 glass">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <p class="section-title mb-1">Network Overview</p>
+      <h3 class="mb-2">Smart Network Intrusion Detection System (SNIDS)</h3>
+      <p class="mb-0 text-muted">Live capture & offline PCAP analysis with rule-based detection for SYN floods, TCP reset storms, and session anomalies.</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+      <a class="btn btn-primary me-2" href="/monitoring/">Start Monitoring</a>
+      <a class="btn btn-outline-info" href="/alerts/">View Alerts</a>
+    </div>
   </div>
 </div>
-<div class="row">
-  <div class="col-md-6 mb-3">
-    <h6>TCP Flag Distribution</h6>
-    <canvas id="flagChart"></canvas>
-  </div>
-  <div class="col-md-6 mb-3">
-    <h6>Packet Rate (last 10 min)</h6>
-    <canvas id="rateChart"></canvas>
-  </div>
-</div>
-<div class="row mb-3">
+
+<div class="row g-3 mb-3">
   <div class="col-md-6">
-    <h6>Top Suspicious IPs</h6>
-    <table class="table table-sm">
-      <tr><th>Source IP</th><th>Alerts</th></tr>
-      {% for ip in top_ips %}
-      <tr><td>{{ ip.src_ip }}</td><td>{{ ip.count }}</td></tr>
-      {% empty %}<tr><td colspan="2">No data</td></tr>{% endfor %}
-    </table>
+    <div class="card p-3 h-100">
+      <p class="section-title mb-1">Quick How-To (no coding)</p>
+      <ul class="mb-0 small ps-3">
+        <li>Go to <strong>Monitoring</strong>, pick your network (Loopback or Wi‑Fi), click <strong>Start</strong>.</li>
+        <li>Want instant data? Upload the sample file in <strong>Monitoring → PCAP</strong> (choose <em>pcaps/ETH_IPv4_TCP_syn.pcap</em>), then watch the Dashboard update.</li>
+        <li>When finished, click <strong>Stop</strong> (or <strong>End All Active Sessions</strong> if something got stuck).</li>
+        <li>Need a quick demo script (optional, Windows admin shell): run <em>python scripts\simulate_syn_flood.py</em> to generate alerts.</li>
+      </ul>
+    </div>
   </div>
   <div class="col-md-6">
-    <h6>Recent Alerts</h6>
-    <table class="table table-sm">
-      <tr><th>Time (local)</th><th>Type</th><th>Severity</th><th>Src</th><th>Dst</th></tr>
-      {% for a in recent_alerts %}
-      <tr>
-        <td>{{ a.created_at|localtime|date:"Y-m-d H:i:s" }}</td><td>{{ a.alert_type }}</td>
-        <td>
-          {% if a.severity == 'critical' %}<span class="badge bg-danger">{{ a.severity }}</span>
-          {% elif a.severity == 'high' %}<span class="badge bg-warning text-dark">{{ a.severity }}</span>
-          {% elif a.severity == 'medium' %}<span class="badge bg-info text-dark">{{ a.severity }}</span>
-          {% else %}<span class="badge bg-secondary">{{ a.severity }}</span>{% endif %}
-        </td>
-        <td>{{ a.src_ip }}</td><td>{{ a.dst_ip }}</td>
-      </tr>
-      {% empty %}<tr><td colspan="5">No alerts yet</td></tr>{% endfor %}
-    </table>
+    <div class="card p-3 h-100">
+      <p class="section-title mb-1">What the cards/charts tell you</p>
+      <ul class="mb-0 small">
+        <li><strong>Totals</strong>: packets, TCP subset, total alerts.</li>
+        <li><strong>Alerts by Type/Severity</strong>: mix of detections and criticality.</li>
+        <li><strong>TCP Flags</strong>: SYN/RST spikes hint at flood/reset storms.</li>
+        <li><strong>Packet Rate</strong>: traffic volume trend (10 minutes).</li>
+        <li><strong>Top IPs / Recent Alerts</strong>: quickest triage targets.</li>
+      </ul>
+    </div>
   </div>
 </div>
+
+<div class="row mb-3 g-3">
+  <div class="col-md-4"><div class="card text-bg-primary"><div class="card-body fw-semibold">Total Packets: {{ total_packets }}</div></div></div>
+  <div class="col-md-4"><div class="card text-bg-info text-dark"><div class="card-body fw-semibold">TCP Packets: {{ total_tcp }}</div></div></div>
+  <div class="col-md-4"><div class="card text-bg-warning text-dark"><div class="card-body fw-semibold">Alerts: {{ total_alerts }}</div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <p class="section-title">Alerts by Type</p>
+      <canvas id="alertsByType"></canvas>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <p class="section-title">Alerts by Severity</p>
+      <canvas id="alertsBySeverity"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <p class="section-title">TCP Flag Distribution (last 500)</p>
+      <canvas id="flagChart"></canvas>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <p class="section-title">Packet Rate (last 10 min)</p>
+      <canvas id="rateChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <p class="section-title">Top Suspicious IPs</p>
+      <table class="table table-sm table-striped align-middle mb-0">
+        <tr><th>Source IP</th><th>Alerts</th></tr>
+        {% for ip in top_ips %}
+        <tr><td>{{ ip.src_ip }}</td><td>{{ ip.count }}</td></tr>
+        {% empty %}<tr><td colspan="2">No data</td></tr>{% endfor %}
+      </table>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <p class="section-title">Recent Alerts</p>
+      <table class="table table-sm table-striped align-middle mb-0">
+        <tr><th>Time (local)</th><th>Type</th><th>Severity</th><th>Src</th><th>Dst</th></tr>
+        {% for a in recent_alerts %}
+        <tr>
+        <td><span title="{{ a.created_at|localtime|date:'Y-m-d H:i:s' }}">{{ a.created_at|timesince }} ago</span></td>
+          <td>{{ a.alert_type }}</td>
+          <td>
+            {% if a.severity == 'critical' %}<span class="badge bg-danger">{{ a.severity }}</span>
+            {% elif a.severity == 'high' %}<span class="badge bg-warning text-dark">{{ a.severity }}</span>
+            {% elif a.severity == 'medium' %}<span class="badge bg-info text-dark">{{ a.severity }}</span>
+            {% else %}<span class="badge bg-secondary">{{ a.severity }}</span>{% endif %}
+          </td>
+          <td>{{ a.src_ip }}</td><td>{{ a.dst_ip }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="5">No alerts yet</td></tr>{% endfor %}
+      </table>
+    </div>
+  </div>
+</div>
+
 <script>
+const palette = ["#0d6efd","#20c997","#ffc107","#dc3545","#6f42c1","#6c757d","#38bdf8","#f472b6"];
+
 const alertsTypeData = {
-  labels: [{% for item in alerts_by_type %}'{{ item.alert_type }}',{% endfor %}],
-  datasets: [{label:'Alerts', data:[{% for item in alerts_by_type %}{{ item.count }},{% endfor %}],
-    backgroundColor:['#0d6efd','#20c997','#ffc107','#dc3545','#6f42c1']}]
+  labels: [{% for item in alerts_by_type %}"{{ item.alert_type }}",{% endfor %}],
+  datasets: [{
+    label: "Alerts",
+    data: [{% for item in alerts_by_type %}{{ item.count }},{% endfor %}],
+    backgroundColor: palette
+  }]
 };
+
 const severityData = {
-  labels: [{% for item in severity_counts %}'{{ item.severity }}',{% endfor %}],
-  datasets: [{label:'Severity', data:[{% for item in severity_counts %}{{ item.count }},{% endfor %}],
-    backgroundColor:['#198754','#ffc107','#fd7e14','#dc3545']}]
+  labels: [{% for item in severity_counts %}"{{ item.severity }}",{% endfor %}],
+  datasets: [{
+    label: "Alerts",
+    data: [{% for item in severity_counts %}{{ item.count }},{% endfor %}],
+    backgroundColor: ["#198754","#ffc107","#fd7e14","#dc3545","#6c757d"]
+  }]
 };
+
 const flagData = {
-  labels:['SYN','ACK','RST','FIN'],
-  datasets:[{label:'Flags', data:[{{ flag_counts.S|default:0 }},{{ flag_counts.A|default:0 }},{{ flag_counts.R|default:0 }},{{ flag_counts.F|default:0 }}],
-    backgroundColor:['#0d6efd','#20c997','#dc3545','#6c757d']}]
+  labels: ["SYN","ACK","RST","FIN"],
+  datasets:[{
+    label: "Count",
+    data: [{{ flag_counts.S|default:0 }},{{ flag_counts.A|default:0 }},{{ flag_counts.R|default:0 }},{{ flag_counts.F|default:0 }}],
+    backgroundColor: ["#0d6efd","#20c997","#dc3545","#6c757d"]
+  }]
 };
+
 const rateData = {
-  labels:[{% for r in packet_rate %}'{{ r.minute|date:"H:i" }}',{% endfor %}],
-  datasets:[{label:'Packets/min', data:[{% for r in packet_rate %}{{ r.count }},{% endfor %}], borderColor:'#0d6efd', fill:false, tension:0.3}]
+  labels: [{% for r in packet_rate %}"{{ r.minute|date:"H:i" }}",{% endfor %}],
+  datasets:[{
+    label: "Packets per minute",
+    data: [{% for r in packet_rate %}{{ r.count }},{% endfor %}],
+    borderColor: "#38bdf8",
+    backgroundColor: "rgba(56,189,248,0.18)",
+    fill: true,
+    tension: 0.32
+  }]
 };
-new Chart(document.getElementById('alertsByType'), {type:'bar', data:alertsTypeData});
-new Chart(document.getElementById('alertsBySeverity'), {type:'pie', data:severityData});
-new Chart(document.getElementById('flagChart'), {type:'bar', data:flagData});
-new Chart(document.getElementById('rateChart'), {type:'line', data:rateData});
+
+new Chart(document.getElementById("alertsByType"), {
+  type: "bar",
+  data: alertsTypeData,
+  options: {
+    plugins: {
+      legend: { display: false },
+      title: { display: true, text: "Alert counts by detection rule" }
+    },
+    scales: {
+      x: { title: { display: true, text: "Alert type" } },
+      y: { beginAtZero: true, title: { display: true, text: "Count" } }
+    }
+  }
+});
+
+new Chart(document.getElementById("alertsBySeverity"), {
+  type: "doughnut",
+  data: severityData,
+  options: {
+    plugins: {
+      legend: { position: "bottom" },
+      title: { display: true, text: "Alert mix by severity" }
+    }
+  }
+});
+
+new Chart(document.getElementById("flagChart"), {
+  type: "bar",
+  data: flagData,
+  options: {
+    plugins: {
+      legend: { display: false },
+      title: { display: true, text: "TCP flags seen" }
+    },
+    scales: {
+      x: { title: { display: true, text: "Flag" } },
+      y: { beginAtZero: true, title: { display: true, text: "Count" } }
+    }
+  }
+});
+
+new Chart(document.getElementById("rateChart"), {
+  type: "line",
+  data: rateData,
+  options: {
+    plugins: {
+      legend: { position: "bottom" },
+      title: { display: true, text: "Packet rate (rolling 10 minutes)" }
+    },
+    scales: {
+      x: { title: { display: true, text: "Time (HH:MM)" } },
+      y: { beginAtZero: true, title: { display: true, text: "Packets/min" } }
+    }
+  }
+});
 </script>
 {% endblock %}

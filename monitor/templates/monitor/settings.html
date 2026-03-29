@@ -1,64 +1,77 @@
-{% extends "monitor/base.html" %}
+﻿{% extends "monitor/base.html" %}
 {% block content %}
-<h4>Detection Settings</h4>
-<form method="post" class="row g-3">{% csrf_token %}
-  <div class="col-md-4">
-    <label class="form-label">SYN Threshold</label>
-    <input name="syn_threshold" class="form-control" value="{{ settings.syn_threshold }}">
-  </div>
-  <div class="col-md-4">
-    <label class="form-label">SYN Window Seconds</label>
-    <input name="syn_window_seconds" class="form-control" value="{{ settings.syn_window_seconds }}">
-  </div>
-  <div class="col-md-4">
-    <label class="form-label">Handshake Completion Min Ratio</label>
-    <input name="handshake_completion_min_ratio" class="form-control" value="{{ settings.handshake_completion_min_ratio }}">
-  </div>
-  <div class="col-md-4">
-    <label class="form-label">RST Threshold</label>
-    <input name="rst_threshold" class="form-control" value="{{ settings.rst_threshold }}">
-  </div>
-  <div class="col-md-4">
-    <label class="form-label">RST Window Seconds</label>
-    <input name="rst_window_seconds" class="form-control" value="{{ settings.rst_window_seconds }}">
-  </div>
-  <div class="col-md-4">
-    <label class="form-label">Hijack Sequence Jump</label>
-    <input name="hijack_seq_jump" class="form-control" value="{{ settings.hijack_seq_jump }}">
-  </div>
-  <div class="col-md-4">
-    <label class="form-label">Alert Cooldown Seconds</label>
-    <input name="alert_cooldown_seconds" class="form-control" value="{{ settings.alert_cooldown_seconds }}">
-  </div>
-  <div class="col-12">
-    <button class="btn btn-primary" type="submit">Save</button>
-  </div>
-</form>
-<hr>
-<h5>Sniffer Control</h5>
-<div class="row mb-3" style="max-width:520px;">
-  <div class="col-md-8">
-    <select id="iface" class="form-select">
-      {% for name, ip in interfaces %}
-        <option value="{{ name }}">{{ name }} {% if ip %} ({{ ip }}){% endif %}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-md-4 d-grid gap-2 d-md-flex">
-    <button class="btn btn-success me-2" type="button" onclick="startSniff()">Start</button>
-    <button class="btn btn-danger" type="button" onclick="stopSniff()">Stop</button>
+<div class="card p-4 mb-4 glass">
+  <div class="d-flex justify-content-between flex-wrap">
+    <div>
+      <p class="section-title mb-1">Thresholds</p>
+      <h4 class="mb-1">Detection Settings</h4>
+      <div class="small text-muted">Tune sensitivity for SYN floods, reset storms, and session anomalies.</div>
+    </div>
+    <div class="align-self-center"><span id="sniffer-status" class="badge bg-secondary">Status: unknown</span></div>
   </div>
 </div>
-<div id="sniffer-status" class="mb-2">Unknown</div>
+<div class="card p-4 glass">
+  <form method="post" class="row g-3">{% csrf_token %}
+    <div class="col-md-4"><label class="form-label">SYN Threshold</label><input name="syn_threshold" class="form-control" value="{{ settings.syn_threshold }}"></div>
+    <div class="col-md-4"><label class="form-label">SYN Window Seconds</label><input name="syn_window_seconds" class="form-control" value="{{ settings.syn_window_seconds }}"></div>
+    <div class="col-md-4"><label class="form-label">Handshake Completion Min Ratio</label><input name="handshake_completion_min_ratio" class="form-control" value="{{ settings.handshake_completion_min_ratio }}"></div>
+    <div class="col-md-4"><label class="form-label">RST Threshold</label><input name="rst_threshold" class="form-control" value="{{ settings.rst_threshold }}"></div>
+    <div class="col-md-4"><label class="form-label">RST Window Seconds</label><input name="rst_window_seconds" class="form-control" value="{{ settings.rst_window_seconds }}"></div>
+    <div class="col-md-4"><label class="form-label">Hijack Sequence Jump</label><input name="hijack_seq_jump" class="form-control" value="{{ settings.hijack_seq_jump }}"></div>
+    <div class="col-md-4"><label class="form-label">Alert Cooldown Seconds</label><input name="alert_cooldown_seconds" class="form-control" value="{{ settings.alert_cooldown_seconds }}"></div>
+    <div class="col-12"><button class="btn btn-primary" type="submit">Save Settings</button></div>
+  </form>
+</div>
+
+<div class="card p-4 mt-4 glass">
+  <p class="section-title mb-2">Quick Control</p>
+  <div class="row g-3" style="max-width:720px;">
+    <div class="col-md-8">
+      <label class="form-label">Interface</label>
+      <select id="iface" class="form-select">
+        {% for name, ip in interfaces %}
+          <option value="{{ name }}">{{ name }}{% if ip %} ({{ ip }}){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4 d-grid gap-2 d-md-flex">
+      <button id="btn-start" class="btn btn-success me-2" type="button" onclick="startSniff()">Start</button>
+      <button id="btn-stop" class="btn btn-danger" type="button" onclick="stopSniff()">Stop</button>
+    </div>
+  </div>
+  <div id="start-stop-msg" class="mt-2 small text-muted"></div>
+</div>
+
 <script>
 async function startSniff(){
   const iface = document.getElementById('iface').value;
-  await fetch(`/api/start/?iface=${iface}`);
-  pollStatus();
+  const msg = document.getElementById('start-stop-msg');
+  if(msg) msg.textContent = 'Starting...';
+  try{
+    const resp = await fetch(`/api/start/?iface=${encodeURIComponent(iface)}`);
+    const data = await resp.json();
+    if(!resp.ok){
+      if(msg) msg.textContent = data.message || 'Failed to start';
+    }else{
+      if(msg) msg.textContent = data.active ? `Started on ${data.iface}` : 'Start issued (check permissions)';
+      updateStatusUI({active:data.active, interface:data.iface});
+    }
+  }catch(e){
+    if(msg) msg.textContent = 'Error starting sniffer';
+  }
 }
 async function stopSniff(){
-  await fetch('/api/stop/');
-  pollStatus();
+  const msg = document.getElementById('start-stop-msg');
+  if(msg) msg.textContent = 'Stopping...';
+  try{
+    const resp = await fetch('/api/stop/');
+    const data = await resp.json();
+    if(msg) msg.textContent = data.message ? `Stopped (note: ${data.message})` : 'Stopped';
+    updateStatusUI({active:data.active, interface:data.iface});
+    setTimeout(()=>window.location.reload(), 400);
+  }catch(e){
+    if(msg) msg.textContent = 'Error stopping sniffer';
+  }
 }
 </script>
 {% endblock %}

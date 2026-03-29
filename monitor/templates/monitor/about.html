@@ -1,31 +1,201 @@
 {% extends "monitor/base.html" %}
 {% block content %}
-<h4>About & Architecture</h4>
-<p>Smart Network Intrusion Detection System (SNIDS) monitors TCP traffic, detects SYN floods, TCP reset spikes, and session anomaly indicators using rule-based logic. It supports live capture (Scapy) and offline PCAP analysis.</p>
-<h5>Flow</h5>
-<pre class="bg-light p-3 border">
-Packet (live/pcap) -> Feature Extraction (TCP fields, counters) -> Detection Engine (rules) -> Alerts -> DB (SQLite) -> Django Views/API -> Dashboard (Bootstrap + Chart.js)
-</pre>
-<h5>Modules</h5>
-<ul>
-  <li>Packet Capture: Scapy live sniff or PCAP parsing</li>
-  <li>Feature Extraction: TCP flags, seq/ack, per-flow counters</li>
-  <li>Detection Engine: SYN flood, RST spike/flow anomaly, session hijack indicators (seq jump, duplicate ACK)</li>
-  <li>Alert Manager: cooldown/dedup, severity</li>
-  <li>Storage: PacketLog, SecurityAlert, MonitoringSession</li>
-  <li>UI: Dashboard, Alerts, Traffic, Monitoring, Settings</li>
-</ul>
-<h5>Demo Tips</h5>
-<ol>
-  <li>Start live monitoring on loopback/ethernet.</li>
-  <li>Run simulation scripts (SYN, RST, anomaly).</li>
-  <li>Show alerts, charts, and packet logs updating.</li>
-  <li>Upload a PCAP to demonstrate offline analysis.</li>
-</ol>
-<h5>Detection Rules (brief)</h5>
-<ul>
-  <li>SYN Flood: SYN rate per source, low handshake completion ratio -> severity scaled by intensity.</li>
-  <li>TCP Reset Spike: RST bursts per source and per flow.</li>
-  <li>Session Anomaly: large sequence jumps; repeated duplicate ACKs.</li>
-</ul>
+
+<div class="card p-5 glass mb-4">
+  <p class="section-title mb-1">Project Primer</p>
+  <h3 class="mb-3">Smart Network Intrusion Detection System (SNIDS)</h3>
+  <p class="text-muted">SNIDS is a lightweight, rule-driven TCP IDS for labs and demos. It captures live traffic (Npcap/libpcap) or ingests PCAP files, detects SYN floods, TCP reset storms, and suspicious seq/ack jumps, and shows results instantly in the web UI.</p>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="text-uppercase text-muted small mb-2">Key Features</h6>
+        <ul class="small mb-0">
+          <li>Live capture with start/stop and session history.</li>
+          <li>Offline PCAP analysis for safe, repeatable demos.</li>
+          <li>Detections: SYN flood, TCP reset spikes, seq/ack anomalies.</li>
+          <li>Dashboard charts, alerts list, packet stream, per-session drill-down.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="text-uppercase text-muted small mb-2">2-minute demo (no code)</h6>
+        <ol class="small ps-3 mb-0">
+          <li>Go to <strong>Monitoring</strong> → pick interface → <strong>Start</strong>.</li>
+          <li>For instant output, upload <em>pcaps/ETH_IPv4_TCP_syn.pcap</em> under Monitoring → PCAP.</li>
+          <li>Check <strong>Dashboard</strong> & <strong>Alerts</strong>; click <strong>Stop</strong> when done.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="text-uppercase text-muted small mb-2">For power users</h6>
+        <ul class="small mb-0">
+          <li>Simulate traffic (admin shell): <code>python scripts\simulate_syn_flood.py</code>, <code>simulate_rst_storm.py</code>, <code>simulate_session_anomaly.py</code>.</li>
+          <li>Tune thresholds in <strong>Settings</strong> (SYN/RST windows, seq jump, cooldown).</li>
+          <li>Per-session drill-down: Monitoring → View to see alerts/packets/CSV for that run.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="text-uppercase text-muted small mb-2">Requirements</h6>
+        <ul class="small mb-0">
+          <li>Windows: Npcap (WinPcap mode) and run shell/IDE as Administrator for live capture.</li>
+          <li>Linux/macOS: libpcap; use sudo or grant cap_net_raw/cap_net_admin.</li>
+          <li>Python venv with project requirements installed.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="text-uppercase text-muted small mb-2">Safety & scope</h6>
+        <ul class="small mb-0">
+          <li>Lab/demo use only; monitor networks you’re authorized to inspect.</li>
+          <li>Rule-based, TCP-focused; not a full IDS/IPS.</li>
+          <li>Sample PCAPs and simulators are benign and local-only.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card p-4 glass mb-4">
+  <p class="section-title mb-1">Team</p>
+  <h4 class="mb-3">Who built SNIDS</h4>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="d-flex align-items-center gap-3">
+        <div class="avatar">LS</div>
+        <div>
+          <div class="fw-semibold">Lovepreet Singh Virdi</div>
+          <div class="small text-muted">Lead Developer · Detection logic & backend</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="d-flex align-items-center gap-3">
+        <div class="avatar">KR</div>
+        <div>
+          <div class="fw-semibold">Kunal Rastogi</div>
+          <div class="small text-muted">Frontend & UX · Dashboards and UI polish</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="d-flex align-items-center gap-3">
+        <div class="avatar">RJ</div>
+        <div>
+          <div class="fw-semibold">Raman Joshi</div>
+          <div class="small text-muted">QA & Demo tooling · PCAPs and simulators</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row g-3 mt-2">
+    <div class="col-md-4">
+      <div class="d-flex align-items-center gap-3">
+        <div class="avatar">JP</div>
+        <div>
+          <div class="fw-semibold">Jill Patel</div>
+          <div class="small text-muted">Data & Reporting · CSV/export and metrics</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="d-flex align-items-center gap-3">
+        <div class="avatar">CR</div>
+        <div>
+          <div class="fw-semibold">Chirag Sanjaykumar Ray</div>
+          <div class="small text-muted">Ops & Infra · Deployment, perf tuning</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card p-4 glass mb-4">
+  <p class="section-title mb-1">Signature Features (full-stack ownership)</p>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="p-3 border rounded bg-light">
+        <div class="fw-semibold">Lovepreet Singh Virdi</div>
+        <div class="small text-muted">Per-session drill-down (alerts/packets/CSV) and resilient sniffer lifecycle.</div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="p-3 border rounded bg-light">
+        <div class="fw-semibold">Kunal Rastogi</div>
+        <div class="small text-muted">Live stats + dashboard UX, status polling, modern chart layout.</div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="p-3 border rounded bg-light">
+        <div class="fw-semibold">Raman Joshi</div>
+        <div class="small text-muted">Alerts/Traffic search-sort-pagination and streaming CSV exports.</div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="p-3 border rounded bg-light">
+        <div class="fw-semibold">Jill Patel</div>
+        <div class="small text-muted">Simulator scripts + PCAP workflows for demos and data generation.</div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="p-3 border rounded bg-light">
+        <div class="fw-semibold">Chirag Sanjaykumar Ray</div>
+        <div class="small text-muted">Windows/Npcap interface mapping and “End All” safety controls for stable capture.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card p-4 glass mb-4">
+  <p class="section-title mb-1">Choosing an Interface</p>
+  <h4 class="mb-3">What you’ll see in the dropdown</h4>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="p-3 border rounded bg-light">
+        <div class="badge bg-primary mb-2">Best for demos</div>
+        <div class="fw-semibold">Loopback Pseudo-Interface 1</div>
+        <div class="small text-muted">Captures traffic generated on the same machine; perfect for simulators and sample PCAPs.</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 border rounded bg-light">
+        <div class="badge bg-success mb-2">Real network</div>
+        <div class="fw-semibold">Wi‑Fi / Ethernet adapters</div>
+        <div class="small text-muted">Use to monitor your actual LAN traffic (only on networks you’re authorized to inspect).</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 border rounded bg-light">
+        <div class="badge bg-secondary mb-2">Likely unusable</div>
+        <div class="fw-semibold">WAN Miniport / Wi‑Fi Direct virtual adapters</div>
+        <div class="small text-muted">These usually can’t capture packets with Npcap/libpcap. If start fails, switch to Loopback or Wi‑Fi.</div>
+      </div>
+    </div>
+  </div>
+  <div class="mt-3 small text-muted">Tip: on Windows, make sure Npcap is installed (WinPcap mode) and run as Administrator for live capture.</div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4"><a class="btn btn-primary w-100" href="/monitoring/">Start Monitoring</a></div>
+  <div class="col-md-4"><a class="btn btn-outline-secondary w-100" href="/alerts/">View Alerts</a></div>
+  <div class="col-md-4"><a class="btn btn-outline-secondary w-100" href="/traffic/">Packet Stream</a></div>
+</div>
 {% endblock %}

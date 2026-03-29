@@ -1,12 +1,14 @@
-from datetime import timedelta
+﻿from datetime import timedelta
 import csv
 from pathlib import Path
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
 from django.db.models.functions import TruncMinute
+from django.db.models import Q
+from django.core.paginator import Paginator
 from .models import PacketLog, SecurityAlert, DetectionSetting, MonitoringSession
 from .services import get_sniffer
 from .utils import list_interfaces
@@ -62,17 +64,62 @@ def dashboard(request):
 
 
 def alerts(request):
-    data = SecurityAlert.objects.all()
-    return render(request, "monitor/alerts.html", {"alerts": data})
+    qs = SecurityAlert.objects.all()
+    per_page_choices = [10, 25, 50, 100, 200]
+    search = request.GET.get("q", "").strip()
+    if search:
+        qs = qs.filter(
+            Q(alert_type__icontains=search)
+            | Q(severity__icontains=search)
+            | Q(src_ip__icontains=search)
+            | Q(dst_ip__icontains=search)
+            | Q(description__icontains=search)
+        )
+    sort = request.GET.get("sort", "-created_at")
+    allowed_sorts = {
+        "time": "created_at",
+        "-time": "-created_at",
+        "type": "alert_type",
+        "-type": "-alert_type",
+        "severity": "severity",
+        "-severity": "-severity",
+    }
+    qs = qs.order_by(allowed_sorts.get(sort, "-created_at"))
+    try:
+        per_page = int(request.GET.get("per_page", 25))
+    except (TypeError, ValueError):
+        per_page = 25
+    per_page = max(5, min(per_page, 200))
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    return render(
+        request,
+        "monitor/alerts.html",
+        {
+            "alerts": page_obj,
+            "search": search,
+            "sort": sort,
+            "per_page": per_page,
+            "per_page_choices": per_page_choices,
+        },
+    )
 
 
 def export_alerts_csv(request):
-    response = HttpResponse(content_type="text/csv")
+    class Echo:
+        def write(self, value):
+            return value
+
+    pseudo_buffer = Echo()
+    writer = csv.writer(pseudo_buffer)
+
+    def row_iter():
+        yield writer.writerow(["timestamp", "type", "severity", "src_ip", "dst_ip", "description"])
+        for a in SecurityAlert.objects.all().order_by("-created_at").iterator(chunk_size=500):
+            yield writer.writerow([a.created_at, a.alert_type, a.severity, a.src_ip, a.dst_ip, a.description])
+
+    response = StreamingHttpResponse(row_iter(), content_type="text/csv")
     response["Content-Disposition"] = "attachment; filename=alerts.csv"
-    writer = csv.writer(response)
-    writer.writerow(["timestamp", "type", "severity", "src_ip", "dst_ip", "description"])
-    for a in SecurityAlert.objects.all().order_by("-created_at"):
-        writer.writerow([a.created_at, a.alert_type, a.severity, a.src_ip, a.dst_ip, a.description])
     return response
 
 
@@ -82,8 +129,108 @@ def alert_detail(request, pk):
 
 
 def traffic(request):
-    packets = PacketLog.objects.order_by("-timestamp")[:200]
-    return render(request, "monitor/traffic.html", {"packets": packets})
+    qs = PacketLog.objects.all()
+    per_page_choices = [10, 25, 50, 100, 200]
+    search = request.GET.get("q", "").strip()
+    if search:
+        qs = qs.filter(
+            Q(src_ip__icontains=search)
+            | Q(dst_ip__icontains=search)
+            | Q(flags__icontains=search)
+        )
+    sort = request.GET.get("sort", "-timestamp")
+    allowed_sorts = {
+        "time": "timestamp",
+        "-time": "-timestamp",
+        "src": "src_ip",
+        "-src": "-src_ip",
+        "dst": "dst_ip",
+        "-dst": "-dst_ip",
+        "len": "length",
+        "-len": "-length",
+    }
+    qs = qs.order_by(allowed_sorts.get(sort, "-timestamp"))
+    try:
+        per_page = int(request.GET.get("per_page", 50))
+    except (TypeError, ValueError):
+        per_page = 50
+    per_page = max(5, min(per_page, 200))
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    return render(
+        request,
+        "monitor/traffic.html",
+        {
+            "packets": page_obj,
+            "search": search,
+            "sort": sort,
+            "per_page": per_page,
+            "per_page_choices": per_page_choices,
+        },
+    )
+
+
+def session_detail(request, pk):
+    session = get_object_or_404(MonitoringSession, pk=pk)
+    start = session.started_at
+    end = session.ended_at or timezone.now()
+
+    alerts_qs = SecurityAlert.objects.filter(created_at__gte=start, created_at__lte=end)
+    packets_qs = PacketLog.objects.filter(timestamp__gte=start, timestamp__lte=end)
+
+    # CSV export for alerts in this session
+    if request.GET.get("csv") == "alerts":
+        class Echo:
+            def write(self, value):
+                return value
+
+        pseudo_buffer = Echo()
+        writer = csv.writer(pseudo_buffer)
+
+        def row_iter():
+            yield writer.writerow(["timestamp", "type", "severity", "src_ip", "dst_ip", "description"])
+            for a in alerts_qs.order_by("-created_at").iterator(chunk_size=500):
+                yield writer.writerow([a.created_at, a.alert_type, a.severity, a.src_ip, a.dst_ip, a.description])
+
+        response = StreamingHttpResponse(row_iter(), content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="session_{pk}_alerts.csv"'
+        return response
+
+    per_page_alerts_choices = [10, 25, 50, 100, 200]
+    per_page_packets_choices = [10, 25, 50, 100, 200]
+
+    try:
+        per_page_alerts = int(request.GET.get("per_page_alerts", 25))
+    except (TypeError, ValueError):
+        per_page_alerts = 25
+    per_page_alerts = max(5, min(per_page_alerts, 200))
+
+    try:
+        per_page_packets = int(request.GET.get("per_page_packets", 50))
+    except (TypeError, ValueError):
+        per_page_packets = 50
+    per_page_packets = max(5, min(per_page_packets, 200))
+
+    alerts_page = Paginator(alerts_qs.order_by("-created_at"), per_page_alerts).get_page(
+        request.GET.get("a_page")
+    )
+    packets_page = Paginator(packets_qs.order_by("-timestamp"), per_page_packets).get_page(
+        request.GET.get("p_page")
+    )
+
+    return render(
+        request,
+        "monitor/session_detail.html",
+        {
+            "session": session,
+            "alerts": alerts_page,
+            "packets": packets_page,
+            "per_page_alerts": per_page_alerts,
+            "per_page_packets": per_page_packets,
+            "per_page_alerts_choices": per_page_alerts_choices,
+            "per_page_packets_choices": per_page_packets_choices,
+        },
+    )
 
 
 def monitoring(request):
@@ -154,19 +301,57 @@ def start_sniff(request):
         sniffer.start(iface)
     except Exception as exc:
         return JsonResponse({"status": "error", "message": str(exc)}, status=500)
-    return JsonResponse({"status": "started", "iface": iface})
+    return JsonResponse({"status": "started", "iface": iface, "active": sniffer.is_running()})
 
 
 def stop_sniff(request):
     sniffer = get_sniffer()
-    sniffer.stop()
-    return JsonResponse({"status": "stopped"})
+    err = sniffer.stop()
+    if err:
+        # Still report stopped state but include message for UI
+        return JsonResponse({"status": "stopped_with_error", "message": err, "active": sniffer.is_running(), "iface": sniffer.interface}, status=200)
+    return JsonResponse({"status": "stopped", "active": sniffer.is_running(), "iface": sniffer.interface})
+
+
+def stop_all_sessions(request):
+    """
+    Stop the sniffer and mark any active MonitoringSession rows as closed.
+    Useful when a sniffer thread crashed or the page was refreshed while running.
+    """
+    sniffer = get_sniffer()
+    err = sniffer.stop()
+    now = timezone.now()
+    MonitoringSession.objects.filter(is_active=True).update(is_active=False, ended_at=now)
+    return JsonResponse({"status": "stopped_all", "message": err, "active": sniffer.is_running(), "iface": sniffer.interface})
 
 
 def status(request):
     sniffer = get_sniffer()
     active = sniffer.is_running()
-    return JsonResponse({"active": active, "interface": sniffer.interface})
+    session_data = {}
+    try:
+        if getattr(sniffer, "session", None):
+            sess = (
+                MonitoringSession.objects.filter(pk=sniffer.session.pk)
+                .values("id", "packet_count", "alert_count")
+                .first()
+            )
+            if sess:
+                session_data = {
+                    "session_id": sess["id"],
+                    "packet_count": sess["packet_count"],
+                    "alert_count": sess["alert_count"],
+                }
+    except Exception:
+        # Fail soft; still return active state
+        session_data = {}
+    return JsonResponse(
+        {
+            "active": active,
+            "interface": sniffer.interface,
+            **session_data,
+        }
+    )
 
 
 def interfaces(request):

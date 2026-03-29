@@ -1,15 +1,26 @@
 {% extends "monitor/base.html" %}
 {% load tz %}
+
 {% block content %}
-<h4>Alert Detail</h4>
-<ul class="list-group mb-3">
-  <li class="list-group-item"><strong>Type:</strong> {{ alert.alert_type }}</li>
-  <li class="list-group-item"><strong>Severity:</strong> {{ alert.severity }}</li>
-  <li class="list-group-item"><strong>Source:</strong> {{ alert.src_ip }}</li>
-  <li class="list-group-item"><strong>Destination:</strong> {{ alert.dst_ip }}</li>
-  <li class="list-group-item"><strong>Description:</strong> {{ alert.description }}</li>
-  <li class="list-group-item"><strong>Evidence:</strong> {{ alert.evidence }}</li>
-  <li class="list-group-item"><strong>Created:</strong> {{ alert.created_at|localtime|date:"Y-m-d H:i:s" }}</li>
- </ul>
-<a href="/alerts/" class="btn btn-secondary">Back</a>
+<div class="card p-4 glass mb-3">
+  <p class="section-title mb-1">Alert Details</p>
+  <h4 class="mb-3">{{ alert.alert_type }}</h4>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="list-group">
+        <div class="list-group-item "><strong>Severity:</strong> {{ alert.severity }}</div>
+        <div class="list-group-item "><strong>Source:</strong> {{ alert.src_ip }}</div>
+        <div class="list-group-item "><strong>Destination:</strong> {{ alert.dst_ip }}</div>
+        <div class="list-group-item "><strong>Created:</strong> <span title="{{ alert.created_at|localtime|date:'Y-m-d H:i:s' }}">{{ alert.created_at|timesince }} ago</span></div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="list-group">
+        <div class="list-group-item "><strong>Description:</strong> {{ alert.description }}</div>
+        <div class="list-group-item "><strong>Evidence:</strong> {{ alert.evidence }}</div>
+      </div>
+    </div>
+  </div>
+  <a href="/alerts/" class="btn btn-secondary mt-3">Back</a>
+</div>
 {% endblock %}

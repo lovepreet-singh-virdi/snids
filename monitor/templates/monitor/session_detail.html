@@ -1,0 +1,99 @@
+{% extends "monitor/base.html" %}
+{% load tz %}
+
+{% block content %}
+<div class="card p-4 mb-4 glass">
+  <div class="d-flex justify-content-between flex-wrap">
+    <div>
+      <p class="section-title mb-1">Session</p>
+      <h4 class="mb-1">Session #{{ session.id }} ({{ session.mode }})</h4>
+      <div class="small text-muted">
+        Interface/PCAP: {% if session.mode == 'pcap' %}{{ session.pcap_name }}{% else %}{{ session.interface }}{% endif %}
+      </div>
+    </div>
+    <div class="text-md-end mt-3 mt-md-0">
+      <div><strong>Started:</strong> <span title="{{ session.started_at|localtime|date:'Y-m-d H:i:s' }}">{{ session.started_at|timesince }} ago</span></div>
+      <div><strong>Ended:</strong> {% if session.ended_at %}<span title="{{ session.ended_at|localtime|date:'Y-m-d H:i:s' }}">{{ session.ended_at|timesince }} ago</span>{% else %}—{% endif %}</div>
+      <div><strong>Packets:</strong> {{ session.packet_count }} | <strong>Alerts:</strong> {{ session.alert_count }}</div>
+      <div><strong>Processing ms:</strong> {{ session.processing_ms_total }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card p-3 glass mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <p class="section-title mb-2">Alerts in this session</p>
+        <a class="btn btn-sm btn-outline-info" href="?csv=alerts">Export CSV</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle mb-0">
+          <tr><th>Time</th><th>Type</th><th>Severity</th><th>Src</th><th>Dst</th></tr>
+          {% for a in alerts %}
+          <tr>
+            <td><span title="{{ a.created_at|localtime|date:'Y-m-d H:i:s' }}">{{ a.created_at|timesince }} ago</span></td>
+            <td>{{ a.alert_type }}</td>
+            <td>
+              {% if a.severity == 'critical' %}<span class="badge bg-danger">{{ a.severity }}</span>
+              {% elif a.severity == 'high' %}<span class="badge bg-warning text-dark">{{ a.severity }}</span>
+              {% elif a.severity == 'medium' %}<span class="badge bg-info text-dark">{{ a.severity }}</span>
+              {% else %}<span class="badge bg-secondary">{{ a.severity }}</span>{% endif %}
+            </td>
+            <td>{{ a.src_ip }}</td><td>{{ a.dst_ip }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5">No alerts in this session.</td></tr>
+          {% endfor %}
+        </table>
+      </div>
+      {% if alerts.paginator.num_pages > 1 %}
+      <div class="d-flex justify-content-between align-items-center mt-2">
+        <div class="small text-muted">Page {{ alerts.number }} of {{ alerts.paginator.num_pages }}</div>
+        <div class="btn-group">
+          {% if alerts.has_previous %}
+            <a class="btn btn-outline-secondary btn-sm" href="?a_page={{ alerts.previous_page_number }}&per_page_alerts={{ per_page_alerts }}&per_page_packets={{ per_page_packets }}">Prev</a>
+          {% endif %}
+          {% if alerts.has_next %}
+            <a class="btn btn-outline-secondary btn-sm" href="?a_page={{ alerts.next_page_number }}&per_page_alerts={{ per_page_alerts }}&per_page_packets={{ per_page_packets }}">Next</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card p-3 glass mb-3">
+      <p class="section-title mb-2">Packets in this session</p>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle mb-0">
+          <tr><th>Time</th><th>Src</th><th>Dst</th><th>SPort</th><th>DPort</th><th>Flags</th><th>Len</th></tr>
+          {% for p in packets %}
+          <tr>
+            <td><span title="{{ p.timestamp|localtime|date:'Y-m-d H:i:s' }}">{{ p.timestamp|timesince }} ago</span></td>
+            <td>{{ p.src_ip }}</td><td>{{ p.dst_ip }}</td>
+            <td>{{ p.src_port }}</td><td>{{ p.dst_port }}</td><td>{{ p.flags }}</td><td>{{ p.length }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7">No packets in this session.</td></tr>
+          {% endfor %}
+        </table>
+      </div>
+      {% if packets.paginator.num_pages > 1 %}
+      <div class="d-flex justify-content-between align-items-center mt-2">
+        <div class="small text-muted">Page {{ packets.number }} of {{ packets.paginator.num_pages }}</div>
+        <div class="btn-group">
+          {% if packets.has_previous %}
+            <a class="btn btn-outline-secondary btn-sm" href="?p_page={{ packets.previous_page_number }}&per_page_packets={{ per_page_packets }}&per_page_alerts={{ per_page_alerts }}">Prev</a>
+          {% endif %}
+          {% if packets.has_next %}
+            <a class="btn btn-outline-secondary btn-sm" href="?p_page={{ packets.next_page_number }}&per_page_packets={{ per_page_packets }}&per_page_alerts={{ per_page_alerts }}">Next</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

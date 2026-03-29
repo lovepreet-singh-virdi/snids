@@ -13,6 +13,8 @@ urlpatterns = [
     path("about/", views.about, name="about"),
     path("api/start/", views.start_sniff, name="start_sniff"),
     path("api/stop/", views.stop_sniff, name="stop_sniff"),
+    path("api/stop_all/", views.stop_all_sessions, name="stop_all_sniff"),
     path("api/status/", views.status, name="status"),
     path("api/interfaces/", views.interfaces, name="interfaces"),
+    path("monitoring/session/<int:pk>/", views.session_detail, name="session_detail"),
 ]

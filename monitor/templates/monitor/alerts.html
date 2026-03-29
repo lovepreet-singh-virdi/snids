@@ -1,24 +1,83 @@
 {% extends "monitor/base.html" %}
 {% load tz %}
+
 {% block content %}
-<h4>Alerts</h4>
-<div class="mb-2">
-  <a class="btn btn-sm btn-outline-primary" href="/alerts/export/">Export CSV</a>
+<div class="card p-4 mb-3 glass">
+  <div class="d-flex justify-content-between flex-wrap">
+    <div>
+      <p class="section-title mb-1">Security Alerts</p>
+      <h4 class="mb-1">Alerts</h4>
+      <div class="small text-muted">Detections from live or PCAP sessions.</div>
+    </div>
+    <div class="align-self-center"><a class="btn btn-outline-info btn-sm" href="/alerts/export/">Export CSV</a></div>
+  </div>
 </div>
-<table class="table table-striped table-sm">
-  <tr><th>Time (local)</th><th>Type</th><th>Severity</th><th>Src</th><th>Dst</th><th></th></tr>
-  {% for a in alerts %}
-  <tr>
-    <td>{{ a.created_at|localtime|date:"Y-m-d H:i:s" }}</td><td>{{ a.alert_type }}</td>
-    <td>
-      {% if a.severity == 'critical' %}<span class="badge bg-danger">{{ a.severity }}</span>
-      {% elif a.severity == 'high' %}<span class="badge bg-warning text-dark">{{ a.severity }}</span>
-      {% elif a.severity == 'medium' %}<span class="badge bg-info text-dark">{{ a.severity }}</span>
-      {% else %}<span class="badge bg-secondary">{{ a.severity }}</span>{% endif %}
-    </td>
-    <td>{{ a.src_ip }}</td><td>{{ a.dst_ip }}</td>
-    <td><a href="/alerts/{{ a.id }}/" class="btn btn-sm btn-outline-primary">View</a></td>
-  </tr>
-  {% empty %}<tr><td colspan="6">No alerts</td></tr>{% endfor %}
-</table>
+
+<div class="card p-3 glass mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label small text-muted">Search</label>
+      <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Type, severity, src/dst IP...">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small text-muted">Sort</label>
+      <select name="sort" class="form-select">
+        <option value="-time" {% if sort == "-time" %}selected{% endif %}>Newest first</option>
+        <option value="time" {% if sort == "time" %}selected{% endif %}>Oldest first</option>
+        <option value="type" {% if sort == "type" %}selected{% endif %}>Type A→Z</option>
+        <option value="-type" {% if sort == "-type" %}selected{% endif %}>Type Z→A</option>
+        <option value="severity" {% if sort == "severity" %}selected{% endif %}>Severity A→Z</option>
+        <option value="-severity" {% if sort == "-severity" %}selected{% endif %}>Severity Z→A</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted">Per page</label>
+      <select name="per_page" class="form-select form-select-sm w-auto">
+        {% for n in per_page_choices %}
+          <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Apply</button>
+      <a class="btn btn-outline-secondary" href="/alerts/">Reset</a>
+    </div>
+  </form>
+</div>
+
+<div class="card p-3 glass">
+  <div class="table-responsive">
+    <table class="table table-striped align-middle table-sm align-middle mb-0">
+      <tr><th>Time (local)</th><th>Type</th><th>Severity</th><th>Src</th><th>Dst</th><th></th></tr>
+      {% for a in alerts %}
+      <tr>
+        <td><span title="{{ a.created_at|localtime|date:'Y-m-d H:i:s' }}">{{ a.created_at|timesince }} ago</span></td><td>{{ a.alert_type }}</td>
+        <td>
+          {% if a.severity == 'critical' %}<span class="badge bg-danger">{{ a.severity }}</span>
+          {% elif a.severity == 'high' %}<span class="badge bg-warning text-dark">{{ a.severity }}</span>
+          {% elif a.severity == 'medium' %}<span class="badge bg-info text-dark">{{ a.severity }}</span>
+          {% else %}<span class="badge bg-secondary">{{ a.severity }}</span>{% endif %}
+        </td>
+        <td>{{ a.src_ip }}</td><td>{{ a.dst_ip }}</td>
+        <td><a href="/alerts/{{ a.id }}/" class="btn btn-sm btn-outline-primary">View</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">No alerts</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% if alerts.paginator.num_pages > 1 %}
+  <div class="d-flex justify-content-between align-items-center mt-2">
+    <div class="small text-muted">Page {{ alerts.number }} of {{ alerts.paginator.num_pages }}</div>
+    <div class="btn-group">
+      {% if alerts.has_previous %}
+        <a class="btn btn-outline-secondary btn-sm" href="?page={{ alerts.previous_page_number }}&q={{ search }}&sort={{ sort }}&per_page={{ per_page }}">Prev</a>
+      {% endif %}
+      {% if alerts.has_next %}
+        <a class="btn btn-outline-secondary btn-sm" href="?page={{ alerts.next_page_number }}&q={{ search }}&sort={{ sort }}&per_page={{ per_page }}">Next</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}

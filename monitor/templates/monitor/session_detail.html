@@ -1,5 +1,6 @@
 {% extends "monitor/base.html" %}
 {% load tz %}
+{% load timefmt %}
 
 {% block content %}
 <div class="card p-4 mb-4 glass">
@@ -12,8 +13,8 @@
       </div>
     </div>
     <div class="text-md-end mt-3 mt-md-0">
-      <div><strong>Started:</strong> <span title="{{ session.started_at|localtime|date:'Y-m-d H:i:s' }}">{{ session.started_at|timesince }} ago</span></div>
-      <div><strong>Ended:</strong> {% if session.ended_at %}<span title="{{ session.ended_at|localtime|date:'Y-m-d H:i:s' }}">{{ session.ended_at|timesince }} ago</span>{% else %}—{% endif %}</div>
+      <div><strong>Started:</strong> <span title="{{ session.started_at|localtime|date:'Y-m-d H:i:s' }}">{{ session.started_at|human_time }}</span></div>
+      <div><strong>Ended:</strong> {% if session.ended_at %}<span title="{{ session.ended_at|localtime|date:'Y-m-d H:i:s' }}">{{ session.ended_at|human_time }}</span>{% else %}&mdash;{% endif %}</div>
       <div><strong>Packets:</strong> {{ session.packet_count }} | <strong>Alerts:</strong> {{ session.alert_count }}</div>
       <div><strong>Processing ms:</strong> {{ session.processing_ms_total }}</div>
     </div>
@@ -32,7 +33,7 @@
           <tr><th>Time</th><th>Type</th><th>Severity</th><th>Src</th><th>Dst</th></tr>
           {% for a in alerts %}
           <tr>
-            <td><span title="{{ a.created_at|localtime|date:'Y-m-d H:i:s' }}">{{ a.created_at|timesince }} ago</span></td>
+            <td><span title="{{ a.created_at|localtime|date:'Y-m-d H:i:s' }}">{{ a.created_at|human_time }}</span></td>
             <td>{{ a.alert_type }}</td>
             <td>
               {% if a.severity == 'critical' %}<span class="badge bg-danger">{{ a.severity }}</span>
@@ -71,7 +72,7 @@
           <tr><th>Time</th><th>Src</th><th>Dst</th><th>SPort</th><th>DPort</th><th>Flags</th><th>Len</th></tr>
           {% for p in packets %}
           <tr>
-            <td><span title="{{ p.timestamp|localtime|date:'Y-m-d H:i:s' }}">{{ p.timestamp|timesince }} ago</span></td>
+            <td><span title="{{ p.timestamp|localtime|date:'Y-m-d H:i:s' }}">{{ p.timestamp|human_time }}</span></td>
             <td>{{ p.src_ip }}</td><td>{{ p.dst_ip }}</td>
             <td>{{ p.src_port }}</td><td>{{ p.dst_port }}</td><td>{{ p.flags }}</td><td>{{ p.length }}</td>
           </tr>
@@ -94,6 +95,31 @@
       </div>
       {% endif %}
     </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-2">
+  <div class="col-md-6">
+    <form method="get" class="filter-form d-flex align-items-center gap-2">
+      <input type="hidden" name="p_page" value="">
+      <input type="hidden" name="a_page" value="">
+      <label class="form-label small text-muted mb-0">Alerts per page</label>
+      <select name="per_page_alerts" class="form-select form-select-sm w-auto filter-input">
+        {% for n in per_page_alerts_choices %}<option value="{{ n }}" {% if per_page_alerts == n %}selected{% endif %}>{{ n }}</option>{% endfor %}
+      </select>
+      <a class="btn btn-outline-secondary btn-sm" href="?">Reset</a>
+    </form>
+  </div>
+  <div class="col-md-6">
+    <form method="get" class="filter-form d-flex align-items-center gap-2">
+      <input type="hidden" name="p_page" value="">
+      <input type="hidden" name="a_page" value="">
+      <label class="form-label small text-muted mb-0">Packets per page</label>
+      <select name="per_page_packets" class="form-select form-select-sm w-auto filter-input">
+        {% for n in per_page_packets_choices %}<option value="{{ n }}" {% if per_page_packets == n %}selected{% endif %}>{{ n }}</option>{% endfor %}
+      </select>
+      <a class="btn btn-outline-secondary btn-sm" href="?">Reset</a>
+    </form>
   </div>
 </div>
 {% endblock %}

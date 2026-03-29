@@ -74,4 +74,6 @@ DETECTION_DEFAULTS = {
     "rst_window_seconds": 10,
     "hijack_seq_jump": 500000,
     "alert_cooldown_seconds": 30,
+    "port_scan_port_threshold": 30,
+    "port_scan_window": 10,
 }

@@ -1,0 +1,53 @@
+{% extends "monitor/base.html" %}
+{% block content %}
+
+<div class="card p-4 mb-4 glass">
+  <p class="section-title mb-1">Detection Rules</p>
+  <h4 class="mb-2">What SNIDS flags</h4>
+  <div class="small text-muted">Current thresholds pull from Settings; change them there and they apply immediately.</div>
+</div>
+
+<div class="card p-3 glass mb-3">
+  <p class="section-title mb-2">TCP threat detectors</p>
+  <ul class="mb-0">
+    <li><strong>SYN_FLOOD</strong> - Excess SYNs without handshakes. Threshold: {{ cfg.syn_threshold }} SYNs / {{ cfg.syn_window_seconds }}s; completion ratio min {{ cfg.handshake_completion_min_ratio }}.</li>
+    <li><strong>TCP_RESET_SPIKE</strong> - Burst of RSTs from a source. Threshold: {{ cfg.rst_threshold }} RSTs / {{ cfg.rst_window_seconds }}s.</li>
+    <li><strong>TCP_RESET_FLOW_ANOMALY</strong> - Multiple RSTs on the same flow within the window.</li>
+    <li><strong>POTENTIAL_SESSION_HIJACK</strong> - Large seq jump (>{{
+      cfg.hijack_seq_jump }}) or repeated duplicate ACKs in {{ cfg.syn_window_seconds }}s.</li>
+    <li><strong>PORT_SCAN</strong> - {{ cfg.port_scan_port_threshold }}+ unique destination ports from one source within {{ cfg.port_scan_window }}s.</li>
+  </ul>
+  <p class="mt-2 mb-0 small text-muted">Alert cooldown (same dedup key): {{ cfg.alert_cooldown_seconds }}s.</p>
+</div>
+
+<div class="card p-3 glass mb-3">
+  <p class="section-title mb-2">How severities are set</p>
+  <ul class="mb-0">
+    <li>SYN flood: scales to high/critical if rate doubles the threshold.</li>
+    <li>RST spike: medium/high based on burst size; flow anomaly is medium.</li>
+    <li>Session hijack: medium for seq jump; low for duplicate-ACK pattern.</li>
+    <li>Port scan: medium; high if well above threshold.</li>
+  </ul>
+</div>
+
+<div class="card p-3 glass mb-3">
+  <p class="section-title mb-2">Feature ownership (full stack)</p>
+  <ul class="mb-0">
+    <li>Lovepreet Singh Virdi - Core detection engine (SYN/RST/hijack + port-scan) and alert surfacing.</li>
+    <li>Kunal Rastogi - Live capture control/status and dashboard metrics/charts.</li>
+    <li>Raman Joshi - Alerts/Traffic drill-down UX, flow filters, streaming CSV exports.</li>
+    <li>Jill Patel - PCAP ingest path and simulator suite (SYN, RST, hijack, port-scan, low dup-ack).</li>
+    <li>Chirag Sanjaykumar Ray - Adapter discovery/filtering and stop/End All sniffer safety.</li>
+  </ul>
+</div>
+
+<div class="card p-3 glass">
+  <p class="section-title mb-2">Usage notes</p>
+  <ul class="mb-0">
+    <li>Live: Start on Loopback or Wi-Fi/Ethernet; run simulators or browse to generate traffic.</li>
+    <li>PCAP: Upload via Monitoring -> PCAP; same rules apply; session recorded.</li>
+    <li>Drill-down: Monitoring -> Sessions -> View for alerts/packets/CSV per run; Traffic flow filter and packet modal for quick inspection.</li>
+  </ul>
+</div>
+
+{% endblock %}

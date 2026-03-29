@@ -26,8 +26,8 @@
       <div class="card-body">
         <h6 class="text-uppercase text-muted small mb-2">2-minute demo (no code)</h6>
         <ol class="small ps-3 mb-0">
-          <li>Go to <strong>Monitoring</strong> -> pick interface -> <strong>Start</strong>.</li>
-          <li>For instant output, upload <em>pcaps/ETH_IPv4_TCP_syn.pcap</em> under Monitoring -> PCAP.</li>
+          <li>Go to <strong>Monitoring</strong> → pick interface → <strong>Start</strong>.</li>
+          <li>For instant output, upload <em>pcaps/ETH_IPv4_TCP_syn.pcap</em> under Monitoring → PCAP.</li>
           <li>Check <strong>Dashboard</strong> & <strong>Alerts</strong>; click <strong>Stop</strong> when done.</li>
         </ol>
       </div>
@@ -40,7 +40,7 @@
         <ul class="small mb-0">
           <li>Simulate traffic (admin shell): <code>python scripts\simulate_syn_flood.py</code>, <code>simulate_rst_storm.py</code>, <code>simulate_session_anomaly.py</code>.</li>
           <li>Tune thresholds in <strong>Settings</strong> (SYN/RST windows, seq jump, cooldown).</li>
-          <li>Per-session drill-down: Monitoring -> View to see alerts/packets/CSV for that run.</li>
+          <li>Per-session drill-down: Monitoring → View to see alerts/packets/CSV for that run.</li>
         </ul>
       </div>
     </div>
@@ -65,7 +65,7 @@
       <div class="card-body">
         <h6 class="text-uppercase text-muted small mb-2">Safety & scope</h6>
         <ul class="small mb-0">
-          <li>Lab/demo use only; monitor networks you're authorized to inspect.</li>
+          <li>Lab/demo use only; monitor networks you’re authorized to inspect.</li>
           <li>Rule-based, TCP-focused; not a full IDS/IPS.</li>
           <li>Sample PCAPs and simulators are benign and local-only.</li>
         </ul>
@@ -83,7 +83,7 @@
         <div class="avatar">LS</div>
         <div>
           <div class="fw-semibold">Lovepreet Singh Virdi</div>
-          <div class="small text-muted">Lead Developer - Detection logic & backend</div>
+          <div class="small text-muted">Lead Developer · Detection logic & backend</div>
         </div>
       </div>
     </div>
@@ -92,7 +92,7 @@
         <div class="avatar">KR</div>
         <div>
           <div class="fw-semibold">Kunal Rastogi</div>
-          <div class="small text-muted">Frontend & UX - Dashboards and UI polish</div>
+          <div class="small text-muted">Frontend & UX · Dashboards and UI polish</div>
         </div>
       </div>
     </div>
@@ -101,7 +101,7 @@
         <div class="avatar">RJ</div>
         <div>
           <div class="fw-semibold">Raman Joshi</div>
-          <div class="small text-muted">QA & Demo tooling - PCAPs and simulators</div>
+          <div class="small text-muted">QA & Demo tooling · PCAPs and simulators</div>
         </div>
       </div>
     </div>
@@ -112,7 +112,7 @@
         <div class="avatar">JP</div>
         <div>
           <div class="fw-semibold">Jill Patel</div>
-          <div class="small text-muted">Data & Reporting - CSV/export and metrics</div>
+          <div class="small text-muted">Data & Reporting · CSV/export and metrics</div>
         </div>
       </div>
     </div>
@@ -121,7 +121,7 @@
         <div class="avatar">CR</div>
         <div>
           <div class="fw-semibold">Chirag Sanjaykumar Ray</div>
-          <div class="small text-muted">Ops &amp; Infra - Deployment, perf tuning</div>
+          <div class="small text-muted">Ops & Infra · Deployment, perf tuning</div>
         </div>
       </div>
     </div>
@@ -132,53 +132,33 @@
   <p class="section-title mb-1">Signature Features (full-stack ownership)</p>
   <div class="row g-3">
     <div class="col-md-6">
-      <div class="p-3 border rounded bg-light h-100">
-        <div class="fw-semibold mb-1">Lovepreet Singh Virdi</div>
-        <ul class="small mb-0 ps-3">
-          <li>Core detection engine (SYN/RST/hijack + port-scan rules, backend logic)</li>
-          <li>Alert surfacing & severity mapping in Dashboard/Alerts UI</li>
-          <li>End-to-end validation with simulators on live/pcap sessions</li>
-        </ul>
+      <div class="p-3 border rounded bg-light">
+        <div class="fw-semibold">Lovepreet Singh Virdi</div>
+        <div class="small text-muted">Detection engine + port-scan rule (backend) and exposing those alerts in Dashboard/Alerts (frontend).</div>
       </div>
     </div>
     <div class="col-md-6">
-      <div class="p-3 border rounded bg-light h-100">
-        <div class="fw-semibold mb-1">Kunal Rastogi</div>
-        <ul class="small mb-0 ps-3">
-          <li>Live capture control/status: start/stop/End All wiring</li>
-          <li>Dashboard live metrics & charts (polling, badges, snackbars)</li>
-          <li>UI cohesion for monitoring + settings quick controls</li>
-        </ul>
+      <div class="p-3 border rounded bg-light">
+        <div class="fw-semibold">Kunal Rastogi</div>
+        <div class="small text-muted">Live stats and dashboard UX: compact chart grid, packet/alert counters wired to status API.</div>
       </div>
     </div>
     <div class="col-md-6">
-      <div class="p-3 border rounded bg-light h-100">
-        <div class="fw-semibold mb-1">Raman Joshi</div>
-        <ul class="small mb-0 ps-3">
-          <li>Alerts/Traffic drill-down UX (search, sort, pagination auto-apply)</li>
-          <li>Streaming CSV exports (backend + UI affordances)</li>
-          <li>Packet detail modal & flow filters</li>
-        </ul>
+      <div class="p-3 border rounded bg-light">
+        <div class="fw-semibold">Raman Joshi</div>
+        <div class="small text-muted">Search/sort/pagination + streaming CSV for Alerts/Traffic (backend queries + UI controls).</div>
       </div>
     </div>
     <div class="col-md-6">
-      <div class="p-3 border rounded bg-light h-100">
-        <div class="fw-semibold mb-1">Jill Patel</div>
-        <ul class="small mb-0 ps-3">
-          <li>PCAP ingest workflow (upload, parse, session recording)</li>
-          <li>Traffic simulators (SYN flood, RST storm, hijack, port-scan, low-dup-ack)</li>
-          <li>Demo data paths & docs for reproducible lab runs</li>
-        </ul>
+      <div class="p-3 border rounded bg-light">
+        <div class="fw-semibold">Jill Patel</div>
+        <div class="small text-muted">Simulator scripts and PCAP workflows (upload/processing UI) for reproducible demos.</div>
       </div>
     </div>
     <div class="col-md-6">
-      <div class="p-3 border rounded bg-light h-100">
-        <div class="fw-semibold mb-1">Chirag Sanjaykumar Ray</div>
-        <ul class="small mb-0 ps-3">
-          <li>Adapter discovery/filtering (usable interfaces, friendly names)</li>
-          <li>Sniffer safety: stop/End All robustness and error handling</li>
-          <li>Capture reliability across real adapters (Npcap mapping)</li>
-        </ul>
+      <div class="p-3 border rounded bg-light">
+        <div class="fw-semibold">Chirag Sanjaykumar Ray</div>
+        <div class="small text-muted">Windows/Npcap interface mapping + End All safety controls; stable start/stop from UI to sniffer.</div>
       </div>
     </div>
   </div>
@@ -186,7 +166,7 @@
 
 <div class="card p-4 glass mb-4">
   <p class="section-title mb-1">Choosing an Interface</p>
-  <h4 class="mb-3">What you'll see in the dropdown</h4>
+  <h4 class="mb-3">What you’ll see in the dropdown</h4>
   <div class="row g-3">
     <div class="col-md-4">
       <div class="p-3 border rounded bg-light">
@@ -198,15 +178,15 @@
     <div class="col-md-4">
       <div class="p-3 border rounded bg-light">
         <div class="badge bg-success mb-2">Real network</div>
-        <div class="fw-semibold">Wi-Fi / Ethernet adapters</div>
-        <div class="small text-muted">Use to monitor your actual LAN traffic (only on networks you're authorized to inspect).</div>
+        <div class="fw-semibold">Wi‑Fi / Ethernet adapters</div>
+        <div class="small text-muted">Use to monitor your actual LAN traffic (only on networks you’re authorized to inspect).</div>
       </div>
     </div>
     <div class="col-md-4">
       <div class="p-3 border rounded bg-light">
         <div class="badge bg-secondary mb-2">Likely unusable</div>
-        <div class="fw-semibold">WAN Miniport / Wi-Fi Direct virtual adapters</div>
-        <div class="small text-muted">These usually can't capture packets with Npcap/libpcap. If start fails, switch to Loopback or Wi-Fi.</div>
+        <div class="fw-semibold">WAN Miniport / Wi‑Fi Direct virtual adapters</div>
+        <div class="small text-muted">These usually can’t capture packets with Npcap/libpcap. If start fails, switch to Loopback or Wi‑Fi.</div>
       </div>
     </div>
   </div>
@@ -219,3 +199,4 @@
   <div class="col-md-4"><a class="btn btn-outline-secondary w-100" href="/traffic/">Packet Stream</a></div>
 </div>
 {% endblock %}
+

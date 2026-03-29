@@ -1,5 +1,6 @@
 {% extends "monitor/base.html" %}
 {% load tz %}
+{% load timefmt %}
 
 {% block content %}
 <div class="card p-4 mb-4 glass">
@@ -10,9 +11,7 @@
       <div class="small text-muted">Start/stop live capture or analyze a PCAP file.</div>
     </div>
     <div class="align-self-center">
-      <span class="badge bg-{% if active %}success{% else %}secondary{% endif %}" id="mon-state">
-        {% if active %}Running on {{ interface }}{% else %}Stopped{% endif %}
-      </span>
+      <span class="badge bg-secondary d-none" id="mon-state">Status: --</span>
     </div>
   </div>
 </div>
@@ -73,7 +72,7 @@
   </div>
 </div>
 
-<div class="card p-3 mt-4 glass">
+<div class="card p-3 mt-4 glass" id="sessions">
   <div class="d-flex justify-content-between align-items-center flex-wrap">
     <p class="section-title mb-2 mb-md-0">Recent Monitoring Sessions</p>
     <button id="btn-stop-all" class="btn btn-outline-danger btn-sm" type="button" onclick="stopAll()">End All Active Sessions</button>
@@ -84,9 +83,9 @@
       {% for s in sessions %}
       <tr>
         <td>{{ s.mode }}</td>
-        <td>{% if s.mode == 'pcap' %}{{ s.pcap_name }}{% else %}{{ s.interface }}{% endif %}</td>
-        <td><span title="{{ s.started_at|localtime|date:'Y-m-d H:i:s' }}">{{ s.started_at|timesince }} ago</span></td>
-        <td>{% if s.ended_at %}<span title="{{ s.ended_at|localtime|date:'Y-m-d H:i:s' }}">{{ s.ended_at|timesince }} ago</span>{% else %}--{% endif %}</td>
+        <td>{% if s.mode == 'pcap' %}<a href="/monitoring/session/{{ s.id }}/" class="text-decoration-none text-primary fw-semibold">{{ s.pcap_name }}</a>{% else %}<a href="/monitoring/session/{{ s.id }}/" class="text-decoration-none text-primary fw-semibold">{{ s.interface }}</a>{% endif %}</td>
+        <td><span title="{{ s.started_at|localtime|date:'Y-m-d H:i:s' }}">{{ s.started_at|human_time }}</span></td>
+        <td>{% if s.ended_at %}<span title="{{ s.ended_at|localtime|date:'Y-m-d H:i:s' }}">{{ s.ended_at|human_time }}</span>{% else %}--{% endif %}</td>
         <td>{{ s.packet_count }}</td>
         <td>{{ s.alert_count }}</td>
         <td>{{ s.processing_ms_total }}</td>
@@ -110,12 +109,15 @@ async function startSniff(){
     const data = await resp.json();
     if(!resp.ok){
       msg.textContent = data.message || 'Failed to start';
+      notify(msg.textContent, "error");
     }else{
       msg.textContent = data.active ? `Started on ${data.iface}` : 'Start issued (check permissions)';
       updateStatusUI({active:data.active, interface:data.iface});
+      notify(`Capture started on ${data.iface || iface}`, "success");
     }
   }catch(err){
     msg.textContent = 'Error starting sniffer';
+    notify('Error starting sniffer', "error");
   }
 }
 
@@ -132,8 +134,10 @@ async function stopSniff(){
     }
     updateStatusUI({active:data.active, interface:data.iface});
     setTimeout(()=>window.location.reload(), 400);
+    notify('Capture stopped', "info");
   }catch(err){
     msg.textContent = 'Error stopping sniffer';
+    notify('Error stopping sniffer', "error");
   }
 }
 
@@ -146,9 +150,11 @@ async function stopAll(){
     await fetch('/api/stop_all/');
     if(msg) msg.textContent = 'All sessions stopped';
     setTimeout(()=>window.location.reload(), 500);
+    notify('All sessions stopped', "info");
   }catch(err){
     if(msg) msg.textContent = 'Error stopping sessions';
     if(btn) btn.disabled = false;
+    notify('Error stopping sessions', "error");
   }
 }
 </script>

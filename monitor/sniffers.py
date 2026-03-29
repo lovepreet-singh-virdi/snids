@@ -24,34 +24,22 @@ class SnifferService:
             if platform.system() != "Windows":
                 return iface
 
-            # Strip any trailing IP in parentheses if it was included in a label.
+            # Strip trailing IP in parentheses, normalize unicode hyphens, collapse slashes.
             iface_clean = iface.split("(")[0].strip()
+            iface_clean = iface_clean.replace("\u2011", "-").replace("\u2010", "-").replace("\u2013", "-").replace("\u2014", "-")
             iface_clean = iface_clean.replace("\\\\", "\\")
 
-            # If the caller already passed an Npcap name, keep it.
+            # If caller passed an Npcap name, normalize slashes and use it.
             if iface_clean.startswith("\\Device\\NPF_") or iface_clean.startswith(r"\Device\NPF_"):
-                # Normalize to single backslashes
                 return iface_clean.replace("\\\\", "\\")
 
-            from scapy.arch.windows import get_windows_if_list
-
-            for item in get_windows_if_list():
-                name = (item.get("name", "") or "").strip()
-                desc = (item.get("description", "") or "").strip()
-                guid = (item.get("guid", "") or "").strip("{}")
-
-                candidates = {name.lower(), desc.lower()}
-                if iface_clean.lower() in candidates:
-                    # Loopback: Scapy/Npcap expects the fixed token
-                    if "loopback" in name.lower() or "loopback" in desc.lower():
-                        return r"\Device\NPF_Loopback"
-                    if guid:
-                        return rf"\Device\NPF_{guid}"
-                    return name
-
-            # Extra fallback for loopback by substring match
+            # Loopback special-case: map to known token
             if "loopback" in iface_clean.lower():
                 return r"\Device\NPF_Loopback"
+
+            # For other adapters, Scapy can resolve friendly names like "Wi-Fi" directly.
+            # Prefer returning the cleaned friendly name to avoid bad GUID mapping.
+            return iface_clean
         except Exception:
             # Fall back to the original interface if mapping fails.
             pass

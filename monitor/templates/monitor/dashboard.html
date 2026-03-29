@@ -1,5 +1,6 @@
 {% extends "monitor/base.html" %}
 {% load tz %}
+{% load timefmt %}
 
 {% block content %}
 <div class="hero p-4 mb-4 glass">
@@ -21,8 +22,8 @@
     <div class="card p-3 h-100">
       <p class="section-title mb-1">Quick How-To (no coding)</p>
       <ul class="mb-0 small ps-3">
-        <li>Go to <strong>Monitoring</strong>, pick your network (Loopback or Wi‑Fi), click <strong>Start</strong>.</li>
-        <li>Want instant data? Upload the sample file in <strong>Monitoring → PCAP</strong> (choose <em>pcaps/ETH_IPv4_TCP_syn.pcap</em>), then watch the Dashboard update.</li>
+        <li>Go to <strong>Monitoring</strong>, pick your network (Loopback or Wi-Fi), click <strong>Start</strong>.</li>
+        <li>Want instant data? Upload the sample file in <strong>Monitoring -> PCAP</strong> (choose <em>pcaps/ETH_IPv4_TCP_syn.pcap</em>), then watch the Dashboard update.</li>
         <li>When finished, click <strong>Stop</strong> (or <strong>End All Active Sessions</strong> if something got stuck).</li>
         <li>Need a quick demo script (optional, Windows admin shell): run <em>python scripts\simulate_syn_flood.py</em> to generate alerts.</li>
       </ul>
@@ -48,32 +49,35 @@
   <div class="col-md-4"><div class="card text-bg-warning text-dark"><div class="card-body fw-semibold">Alerts: {{ total_alerts }}</div></div></div>
 </div>
 
-<div class="row g-3">
-  <div class="col-md-6">
+<div class="row row-cols-1 row-cols-lg-2 row-cols-xxl-3 g-3 mt-1">
+  <div class="col">
     <div class="card p-3 h-100">
       <p class="section-title">Alerts by Type</p>
-      <canvas id="alertsByType"></canvas>
+      <canvas id="alertsByType" style="height:280px;"></canvas>
     </div>
   </div>
-  <div class="col-md-6">
+  <div class="col">
     <div class="card p-3 h-100">
       <p class="section-title">Alerts by Severity</p>
-      <canvas id="alertsBySeverity"></canvas>
+      <canvas id="alertsBySeverity" style="height:280px;"></canvas>
     </div>
   </div>
-</div>
-
-<div class="row g-3 mt-1">
-  <div class="col-md-6">
+  <div class="col">
     <div class="card p-3 h-100">
-      <p class="section-title">TCP Flag Distribution (last 500)</p>
-      <canvas id="flagChart"></canvas>
+      <p class="section-title">TCP Flags (last 500)</p>
+      <canvas id="flagChart" style="height:280px;"></canvas>
     </div>
   </div>
-  <div class="col-md-6">
+  <div class="col">
     <div class="card p-3 h-100">
-      <p class="section-title">Packet Rate (last 10 min)</p>
-      <canvas id="rateChart"></canvas>
+      <p class="section-title">Packet Rate (10 min)</p>
+      <canvas id="rateChart" style="height:280px;"></canvas>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card p-3 h-100">
+      <p class="section-title">Top Destination Ports</p>
+      <canvas id="portsChart" style="height:280px;"></canvas>
     </div>
   </div>
 </div>
@@ -94,10 +98,10 @@
     <div class="card p-3 h-100">
       <p class="section-title">Recent Alerts</p>
       <table class="table table-sm table-striped align-middle mb-0">
-        <tr><th>Time (local)</th><th>Type</th><th>Severity</th><th>Src</th><th>Dst</th></tr>
+        <tr><th>Time</th><th>Type</th><th>Severity</th><th>Src</th><th>Dst</th></tr>
         {% for a in recent_alerts %}
         <tr>
-        <td><span title="{{ a.created_at|localtime|date:'Y-m-d H:i:s' }}">{{ a.created_at|timesince }} ago</span></td>
+        <td><span title="{{ a.created_at|localtime|date:'Y-m-d H:i:s' }}">{{ a.created_at|human_time }}</span></td>
           <td>{{ a.alert_type }}</td>
           <td>
             {% if a.severity == 'critical' %}<span class="badge bg-danger">{{ a.severity }}</span>
@@ -155,6 +159,15 @@ const rateData = {
   }]
 };
 
+const portsData = {
+  labels: [{% for p in top_ports %}"{{ p.dst_port }}",{% endfor %}],
+  datasets:[{
+    label: "Count",
+    data: [{% for p in top_ports %}{{ p.count }},{% endfor %}],
+    backgroundColor: palette
+  }]
+};
+
 new Chart(document.getElementById("alertsByType"), {
   type: "bar",
   data: alertsTypeData,
@@ -207,6 +220,21 @@ new Chart(document.getElementById("rateChart"), {
     scales: {
       x: { title: { display: true, text: "Time (HH:MM)" } },
       y: { beginAtZero: true, title: { display: true, text: "Packets/min" } }
+    }
+  }
+});
+
+new Chart(document.getElementById("portsChart"), {
+  type: "bar",
+  data: portsData,
+  options: {
+    plugins: {
+      legend: { display: false },
+      title: { display: true, text: "Most-hit destination ports" }
+    },
+    scales: {
+      x: { title: { display: true, text: "Port" } },
+      y: { beginAtZero: true, title: { display: true, text: "Count" } }
     }
   }
 });

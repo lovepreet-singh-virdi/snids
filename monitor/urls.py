@@ -17,4 +17,5 @@ urlpatterns = [
     path("api/status/", views.status, name="status"),
     path("api/interfaces/", views.interfaces, name="interfaces"),
     path("monitoring/session/<int:pk>/", views.session_detail, name="session_detail"),
+    path("rules/", views.rules, name="rules"),
 ]

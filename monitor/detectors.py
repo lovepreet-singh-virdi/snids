@@ -14,6 +14,8 @@ class DetectionState:
         self.ack_history = defaultdict(deque)     # flow -> deque[(ts, ack)]
         self.last_direction = {}                  # flow -> 'fwd' or 'rev'
         self.alert_cooldowns = {}                 # key -> last_alert_time
+        # Port scan tracking: per source, unique destination ports within window
+        self.port_scan_events = defaultdict(lambda: {"ports": deque(), "set": set()})
 
     def within_window(self, dq, window, now):
         while dq and now - (dq[0][0] if isinstance(dq[0], tuple) else dq[0]) > window:
@@ -39,6 +41,8 @@ def get_config():
             "rst_window_seconds": ds.rst_window_seconds,
             "hijack_seq_jump": ds.hijack_seq_jump,
             "alert_cooldown_seconds": ds.alert_cooldown_seconds,
+            "port_scan_port_threshold": getattr(ds, "port_scan_port_threshold", 30),
+            "port_scan_window": getattr(ds, "port_scan_window", 10),
         }
     except DetectionSetting.DoesNotExist:
         return settings.DETECTION_DEFAULTS
@@ -101,6 +105,33 @@ def detect(packet, state: DetectionState):
         hs["synack"] += 1
     if "A" in flags and "S" not in flags:
         hs["ack"] += 1
+
+    # Port-scan / service-sweep detection (unique destination ports per source)
+    ps = state.port_scan_events[src]
+    ps["ports"].append((now, packet["dst_port"]))
+    ps["set"].add(packet["dst_port"])
+    # Clean window
+    window = state.cfg.get("port_scan_window", 10)
+    while ps["ports"] and now - ps["ports"][0][0] > window:
+        _, old_port = ps["ports"].popleft()
+        # If that port no longer in window, remove from set
+        if all(p != old_port for (_, p) in ps["ports"]):
+            ps["set"].discard(old_port)
+    unique_ports = len(ps["set"])
+    threshold = state.cfg.get("port_scan_port_threshold", 30)
+    if unique_ports >= threshold:
+        key = f"portscan:{src}"
+        if not state.should_cooldown(key, now):
+            sev = "high" if unique_ports >= threshold * 1.5 else "medium"
+            alerts.append({
+                "type": "PORT_SCAN",
+                "severity": sev,
+                "src_ip": src,
+                "dst_ip": dst,
+                "description": f"Possible port scan: {unique_ports} unique destination ports in {window}s from {src}",
+                "evidence": {"unique_ports": unique_ports, "window_seconds": window},
+                "dedup_key": key,
+            })
 
     # RST detection per source and per flow
     if "R" in flags:

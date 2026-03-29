@@ -1,4 +1,4 @@
-﻿{% extends "monitor/base.html" %}
+{% extends "monitor/base.html" %}
 {% block content %}
 <div class="card p-4 mb-4 glass">
   <div class="d-flex justify-content-between flex-wrap">
@@ -7,11 +7,11 @@
       <h4 class="mb-1">Detection Settings</h4>
       <div class="small text-muted">Tune sensitivity for SYN floods, reset storms, and session anomalies.</div>
     </div>
-    <div class="align-self-center"><span id="sniffer-status" class="badge bg-secondary">Status: unknown</span></div>
+    <div class="align-self-center"><span id="sniffer-status" class="badge bg-secondary d-none">Status: --</span></div>
   </div>
 </div>
 <div class="card p-4 glass">
-  <form method="post" class="row g-3">{% csrf_token %}
+<form method="post" class="row g-3" id="settings-form">{% csrf_token %}
     <div class="col-md-4"><label class="form-label">SYN Threshold</label><input name="syn_threshold" class="form-control" value="{{ settings.syn_threshold }}"></div>
     <div class="col-md-4"><label class="form-label">SYN Window Seconds</label><input name="syn_window_seconds" class="form-control" value="{{ settings.syn_window_seconds }}"></div>
     <div class="col-md-4"><label class="form-label">Handshake Completion Min Ratio</label><input name="handshake_completion_min_ratio" class="form-control" value="{{ settings.handshake_completion_min_ratio }}"></div>
@@ -52,12 +52,15 @@ async function startSniff(){
     const data = await resp.json();
     if(!resp.ok){
       if(msg) msg.textContent = data.message || 'Failed to start';
+      notify(data.message || 'Failed to start', "error");
     }else{
       if(msg) msg.textContent = data.active ? `Started on ${data.iface}` : 'Start issued (check permissions)';
       updateStatusUI({active:data.active, interface:data.iface});
+      notify(`Capture started on ${data.iface || iface}`, "success");
     }
   }catch(e){
     if(msg) msg.textContent = 'Error starting sniffer';
+    notify('Error starting sniffer', "error");
   }
 }
 async function stopSniff(){
@@ -69,9 +72,19 @@ async function stopSniff(){
     if(msg) msg.textContent = data.message ? `Stopped (note: ${data.message})` : 'Stopped';
     updateStatusUI({active:data.active, interface:data.iface});
     setTimeout(()=>window.location.reload(), 400);
+    notify('Capture stopped', "info");
   }catch(e){
     if(msg) msg.textContent = 'Error stopping sniffer';
+    notify('Error stopping sniffer', "error");
   }
 }
+
+// Show snackbar after settings save (page reload)
+document.addEventListener('DOMContentLoaded', ()=>{
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('saved') === '1'){
+    notify('Settings saved', 'success');
+  }
+});
 </script>
 {% endblock %}

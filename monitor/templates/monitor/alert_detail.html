@@ -1,5 +1,6 @@
 {% extends "monitor/base.html" %}
 {% load tz %}
+{% load timefmt %}
 
 {% block content %}
 <div class="card p-4 glass mb-3">
@@ -11,7 +12,7 @@
         <div class="list-group-item "><strong>Severity:</strong> {{ alert.severity }}</div>
         <div class="list-group-item "><strong>Source:</strong> {{ alert.src_ip }}</div>
         <div class="list-group-item "><strong>Destination:</strong> {{ alert.dst_ip }}</div>
-        <div class="list-group-item "><strong>Created:</strong> <span title="{{ alert.created_at|localtime|date:'Y-m-d H:i:s' }}">{{ alert.created_at|timesince }} ago</span></div>
+        <div class="list-group-item "><strong>Created:</strong> <span title="{{ alert.created_at|localtime|date:'Y-m-d H:i:s' }}">{{ alert.created_at|human_time }}</span></div>
       </div>
     </div>
     <div class="col-md-6">

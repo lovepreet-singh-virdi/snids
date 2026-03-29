@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
-"""Potential session hijack indicator traffic for lab testing only."""
+"""
+Session-anomaly simulator for lab testing only.
+Mixes high seq jumps and duplicate ACK patterns to exercise hijack heuristics.
+"""
 from scapy.all import IP, TCP, send
 
 dst = "127.0.0.1"
 dport = 8080
-for i in range(30):
-    pkt = IP(src="10.0.0.42", dst=dst) / TCP(sport=13000 + i, dport=dport, flags="PA", seq=9000000 + i * 1000, ack=1)
-    send(pkt, verbose=False)
+src = "10.0.0.42"
+pkts = []
+
+# Large seq jumps (established flow mimic)
+for i in range(80):
+    pkts.append(IP(src=src, dst=dst) / TCP(sport=13000, dport=dport, flags="PA", seq=9_000_000 + i * 1500, ack=1))
+
+# Duplicate ACK burst
+for i in range(40):
+    pkts.append(IP(src=src, dst=dst) / TCP(sport=13000, dport=dport, flags="A", seq=1_000_000, ack=55555))
+
+send(pkts, verbose=False)

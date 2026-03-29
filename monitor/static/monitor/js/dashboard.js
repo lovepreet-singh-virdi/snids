@@ -7,9 +7,20 @@
   }
   const badge = document.getElementById('mon-state');
   if(badge){
-    badge.innerText = j.active ? `Running on ${j.interface ?? ''}` : 'Stopped';
-    badge.classList.remove('bg-success','bg-secondary');
-    badge.classList.add(j.active ? 'bg-success' : 'bg-secondary');
+    badge.classList.remove('d-none');
+    if(j.active){
+      badge.innerText = `Running on ${j.interface ?? ''}`;
+      badge.classList.remove('bg-secondary');
+      badge.classList.add('bg-success');
+    }else if(j.interface){
+      badge.innerText = `Stopped on ${j.interface}`;
+      badge.classList.remove('bg-success');
+      badge.classList.add('bg-secondary');
+    }else{
+      badge.innerText = 'Status: --';
+      badge.classList.remove('bg-success');
+      badge.classList.add('bg-secondary');
+    }
   }
   const startBtn = document.getElementById('btn-start');
   const stopBtn = document.getElementById('btn-stop');
@@ -36,3 +47,41 @@ async function pollStatus(){
 
 document.addEventListener('DOMContentLoaded', pollStatus);
 setInterval(pollStatus, 2000);
+
+function notify(message, variant="info", duration=2500){
+  const stack = document.getElementById('snackbar-stack');
+  if(!stack) return;
+  const el = document.createElement('div');
+  el.className = `snackbar ${variant}`;
+  el.textContent = message;
+  stack.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>{
+    el.classList.remove('show');
+    setTimeout(()=>el.remove(), 300);
+  }, duration);
+}
+
+// Packet detail modal handler (Traffic page)
+document.addEventListener('click', (e)=>{
+  const row = e.target.closest('.packet-row');
+  if(!row) return;
+  const fields = [
+    ["Flow", row.dataset.flow],
+    ["Time", row.dataset.time],
+    ["Source", row.dataset.src],
+    ["Destination", row.dataset.dst],
+    ["Src Port", row.dataset.sport],
+    ["Dst Port", row.dataset.dport],
+    ["Flags", row.dataset.flags],
+    ["Length", row.dataset.len],
+  ];
+  const dl = document.getElementById('pktFields');
+  if(!dl) return;
+  dl.innerHTML = fields.map(([k,v])=>`<dt class="col-sm-4">${k}</dt><dd class="col-sm-8 mb-2">${v || '--'}</dd>`).join('');
+  const modalEl = document.getElementById('pktModal');
+  if(modalEl){
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+  }
+});

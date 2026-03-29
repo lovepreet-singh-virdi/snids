@@ -12,6 +12,7 @@ from django.core.paginator import Paginator
 from .models import PacketLog, SecurityAlert, DetectionSetting, MonitoringSession
 from .services import get_sniffer
 from .utils import list_interfaces
+from .detectors import get_config
 
 
 def dashboard(request):
@@ -29,6 +30,11 @@ def dashboard(request):
         .order_by()
         .annotate(count=models.Count("id"))
         .order_by("-count")[:5]
+    )
+    top_ports = (
+        PacketLog.objects.values("dst_port")
+        .annotate(count=models.Count("id"))
+        .order_by("-count")[:8]
     )
     # Packet rate (last 10 minutes)
     ten_min_ago = timezone.now() - timedelta(minutes=10)
@@ -56,6 +62,7 @@ def dashboard(request):
             "alerts_by_type": alerts_by_type,
             "severity_counts": severity_counts,
             "top_ips": top_ips,
+            "top_ports": top_ports,
             "packet_rate": packet_rate,
             "flag_counts": flag_counts,
             "recent_alerts": recent_alerts,
@@ -86,9 +93,9 @@ def alerts(request):
     }
     qs = qs.order_by(allowed_sorts.get(sort, "-created_at"))
     try:
-        per_page = int(request.GET.get("per_page", 25))
+        per_page = int(request.GET.get("per_page", 10))
     except (TypeError, ValueError):
-        per_page = 25
+        per_page = 10
     per_page = max(5, min(per_page, 200))
     paginator = Paginator(qs, per_page)
     page_obj = paginator.get_page(request.GET.get("page"))
@@ -132,12 +139,21 @@ def traffic(request):
     qs = PacketLog.objects.all()
     per_page_choices = [10, 25, 50, 100, 200]
     search = request.GET.get("q", "").strip()
+    flow = request.GET.get("flow", "").strip()
     if search:
         qs = qs.filter(
             Q(src_ip__icontains=search)
             | Q(dst_ip__icontains=search)
             | Q(flags__icontains=search)
         )
+    if flow and "->" in flow:
+        try:
+            left, right = flow.split("->", 1)
+            src_ip, src_port = left.rsplit(":", 1)
+            dst_ip, dst_port = right.rsplit(":", 1)
+            qs = qs.filter(src_ip=src_ip, src_port=int(src_port), dst_ip=dst_ip, dst_port=int(dst_port))
+        except Exception:
+            pass
     sort = request.GET.get("sort", "-timestamp")
     allowed_sorts = {
         "time": "timestamp",
@@ -151,9 +167,9 @@ def traffic(request):
     }
     qs = qs.order_by(allowed_sorts.get(sort, "-timestamp"))
     try:
-        per_page = int(request.GET.get("per_page", 50))
+        per_page = int(request.GET.get("per_page", 10))
     except (TypeError, ValueError):
-        per_page = 50
+        per_page = 10
     per_page = max(5, min(per_page, 200))
     paginator = Paginator(qs, per_page)
     page_obj = paginator.get_page(request.GET.get("page"))
@@ -163,6 +179,7 @@ def traffic(request):
         {
             "packets": page_obj,
             "search": search,
+            "flow": flow,
             "sort": sort,
             "per_page": per_page,
             "per_page_choices": per_page_choices,
@@ -200,15 +217,15 @@ def session_detail(request, pk):
     per_page_packets_choices = [10, 25, 50, 100, 200]
 
     try:
-        per_page_alerts = int(request.GET.get("per_page_alerts", 25))
+        per_page_alerts = int(request.GET.get("per_page_alerts", 10))
     except (TypeError, ValueError):
-        per_page_alerts = 25
+        per_page_alerts = 10
     per_page_alerts = max(5, min(per_page_alerts, 200))
 
     try:
-        per_page_packets = int(request.GET.get("per_page_packets", 50))
+        per_page_packets = int(request.GET.get("per_page_packets", 10))
     except (TypeError, ValueError):
-        per_page_packets = 50
+        per_page_packets = 10
     per_page_packets = max(5, min(per_page_packets, 200))
 
     alerts_page = Paginator(alerts_qs.order_by("-created_at"), per_page_alerts).get_page(
@@ -280,6 +297,8 @@ def settings_view(request):
             "rst_window_seconds",
             "hijack_seq_jump",
             "alert_cooldown_seconds",
+            "port_scan_port_threshold",
+            "port_scan_window",
         ]:
             val = request.POST.get(field)
             if val is not None:
@@ -288,7 +307,7 @@ def settings_view(request):
                 else:
                     setattr(ds, field, int(val))
         ds.save()
-        return redirect("settings")
+        return redirect("/settings/?saved=1")
     return render(request, "monitor/settings.html", {"settings": ds, "interfaces": list_interfaces()})
 
 
@@ -356,3 +375,9 @@ def status(request):
 
 def interfaces(request):
     return JsonResponse({"interfaces": list_interfaces()})
+
+
+def rules(request):
+    # pull current detection config; fall back to defaults inside get_config
+    cfg = get_config()
+    return render(request, "monitor/rules.html", {"cfg": cfg})

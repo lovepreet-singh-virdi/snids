@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html>
 <head>
   <title>Smart Network Intrusion Detection System (SNIDS)</title>
@@ -21,6 +21,28 @@
       align-items: center; justify-content: center; font-weight: 700;
       color: #0f172a; background: #e0f2fe;
     }
+    .snackbar-stack {
+      position: fixed; bottom: 18px; right: 18px; z-index: 1080;
+      display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+      pointer-events: none;
+    }
+    .snackbar {
+      pointer-events: auto;
+      min-width: 260px;
+      background: #0f172a;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+      font-size: 0.95rem;
+      display: flex; align-items: center; gap: 10px;
+      opacity: 0; transform: translateY(8px);
+      transition: opacity .15s ease, transform .15s ease;
+    }
+    .snackbar.show { opacity: 0.98; transform: translateY(0); }
+    .snackbar.success { background: #16a34a; }
+    .snackbar.error { background: #dc2626; }
+    .snackbar.info { background: #0ea5e9; }
   </style>
 </head>
 <body class="bg-light text-dark">
@@ -36,7 +58,9 @@
         <a class="nav-link" href="/alerts/">Alerts</a>
         <a class="nav-link" href="/traffic/">Traffic</a>
         <a class="nav-link" href="/monitoring/">Monitoring</a>
+        <a class="nav-link" href="/monitoring/#sessions">Sessions</a>
         <a class="nav-link" href="/settings/">Settings</a>
+        <a class="nav-link" href="/rules/">Rules</a>
         <a class="nav-link" href="/about/">About</a>
       </div>
     </div>
@@ -45,11 +69,31 @@
 <div class="container pb-5">
   {% block content %}{% endblock %}
 </div>
+<div class="snackbar-stack" id="snackbar-stack"></div>
 <footer class="container pb-4 text-center">
   <div class="fw-semibold">Smart Network Intrusion Detection System (SNIDS)</div>
-  <div class="text-muted">Django + Scapy · Lab use only · Capture requires admin/root or setcap/Npcap.</div>
+  <div class="text-muted">Django + Scapy - Lab use only - Capture requires admin/root or setcap/Npcap.</div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/static/monitor/js/dashboard.js"></script>
+<script>
+// Auto-apply filters (alerts/traffic/session detail) with a small debounce
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.querySelectorAll('.filter-form').forEach(form=>{
+    const inputs = form.querySelectorAll('.filter-input');
+    let t;
+    const submitSoon = () => {
+      clearTimeout(t);
+      t = setTimeout(()=> form.requestSubmit(), 300);
+    };
+    inputs.forEach(el=>{
+      el.addEventListener('change', submitSoon);
+      if(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA'){
+        el.addEventListener('input', submitSoon);
+      }
+    });
+  });
+});
+</script>
 </body>
 </html>
